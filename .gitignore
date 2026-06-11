@@ -1,0 +1,13 @@
+# Archivos de Roblox Studio que no necesitan versionarse
+*.rbxl
+*.rbxlx
+
+# Rojo
+*.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (por si uso herramientas extra en el futuro jeje)
+node_modules/
