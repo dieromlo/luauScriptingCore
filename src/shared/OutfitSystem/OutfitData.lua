@@ -13,8 +13,8 @@ OutfitData.Outfits = {
         name        = "Dark Circuit", -- Nombre del Outfit
         description = "Cyberpunk underground. Hecha para los que no duermen.", -- Descripción del outfit
         items = {
-            shirt  = 585519635,  -- Reemplazar con Asset ID real
-            pants  = 585520483,  -- Reemplazar con Asset ID real
+            shirt  = 382537085,  -- Reemplazar con Asset ID real
+            pants  = 382538087,  -- Reemplazar con Asset ID real
         },
         thumbnail = "rbxassetid://0",
     },
@@ -24,8 +24,8 @@ OutfitData.Outfits = {
         name        = "Infected Memories",
         description = "Gótico moderno. Rojo profundo, negro absoluto.",
         items = {
-            shirt  = 585519635,
-            pants  = 585520483,
+            shirt  = 98722906431801,
+            pants  = 88731458901982,
         },
         thumbnail = "rbxassetid://0",
     },

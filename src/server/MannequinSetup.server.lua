@@ -51,26 +51,46 @@ local function makeHeadless(model)
 end
 
 -- ----------------------------------------------------------------
--- Aplicar camisa y pantalón al maniquí
+-- Aplicar camisa y pantalón al maniquí usando HumanoidDescription
 -- ----------------------------------------------------------------
 local function applyClothing(model, outfit)
-    -- Eliminar ropa previa (por si el template tenía algo)
-    for _, child in ipairs(model:GetDescendants()) do
-        if child:IsA("Shirt") or child:IsA("Pants") then
-            child:Destroy()
-        end
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
+    if not humanoid then 
+        warn("[MannequinSetup] No se encontró Humanoid en el maniquí para aplicar ropa.")
+        return 
     end
 
-    if outfit.items.shirt and outfit.items.shirt ~= 0 then
-        local shirt = Instance.new("Shirt")
-        shirt.ShirtTemplate = "rbxassetid://" .. tostring(outfit.items.shirt)
-        shirt.Parent = model
-    end
+    -- Creamos una descripción de apariencia temporal
+    local description = Instance.new("HumanoidDescription")
+    description.Shirt = outfit.items.shirt or 0
+    description.Pants = outfit.items.pants or 0
+    
+    -- ============================================================
+    -- CONFIGURACIÓN ESTÉTICA: AVATARES MÁS DELGADOS Y ESTILIZADOS
+    -- ============================================================
+    description.WidthScale = 0.85      -- Reduce el ancho (85% del tamaño original)
+    description.DepthScale = 0.85      -- Reduce el grosor de perfil
+    description.HeightScale = 1.05     -- Los hace ligeramente más altos
+    description.ProportionScale = 0    -- Mantiene la proporción estilizada
 
-    if outfit.items.pants and outfit.items.pants ~= 0 then
-        local pants = Instance.new("Pants")
-        pants.PantsTemplate = "rbxassetid://" .. tostring(outfit.items.pants)
-        pants.Parent = model
+    -- ============================================================
+    -- CONFIGURACIÓN DE COLOR DE PIEL NEUTRAL (Maniquí Gris Elegante)
+    -- ============================================================
+    local mannequinColor = Color3.fromRGB(180, 180, 180) -- Gris claro neutral
+    description.HeadColor     = mannequinColor
+    description.TorsoColor    = mannequinColor
+    description.LeftArmColor  = mannequinColor
+    description.RightArmColor = mannequinColor
+    description.LeftLegColor  = mannequinColor
+    description.RightLegColor = mannequinColor
+    
+    -- Aplicamos la descripción al Humanoid de forma segura
+    local success, err = pcall(function()
+        humanoid:ApplyDescription(description)
+    end)
+    
+    if not success then
+        warn("[MannequinSetup] Error al aplicar ropa al outfit " .. outfit.name .. ": " .. tostring(err))
     end
 end
 
@@ -138,15 +158,22 @@ local function setupAllMannequins()
         -- Posicionar en el mapa
         mannequin:SetPrimaryPartCFrame(targetCFrame)
 
-        -- Aplicar ajustes visuales
+        -- ============================================================
+        -- Primero lo metemos al Workspace para que el motor de Roblox
+        -- sepa que el personaje existe y pueda descargar la ropa.
+        -- ============================================================
+        mannequin.Parent = mannequinFolder
+        
+        -- Esperamos un instante mínimo a que el motor procese el cambio de entorno
+        task.wait()
+
+        -- Ahora sí, aplicamos los ajustes visuales con el maniquí ya en el mundo
         anchorAllParts(mannequin)
-        makeHeadless(mannequin)
-        applyClothing(mannequin, outfit)
+        applyClothing(mannequin, outfit) 
+        makeHeadless(mannequin)          
         addInteractionPrompt(mannequin, outfit)
 
-        mannequin.Parent = mannequinFolder
-
-        print("[MannequinSetup] ✅ Maniquí creado: " .. outfit.name)
+        print("[MannequinSetup] ✅ Maniquí creado y vestido: " .. outfit.name)
     end
 
     print("[MannequinSetup] 🎉 Total: " .. #OutfitData.Outfits .. " maniquíes activos.")
