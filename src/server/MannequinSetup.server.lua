@@ -23,13 +23,23 @@ local MANNEQUIN_CFRAMES = {
 }
 
 -- ----------------------------------------------------------------
--- Anclar todas las BaseParts del maniquí para que no caiga
+-- Anclar SOLO el RootPart del maniquí para que no caiga
 -- ----------------------------------------------------------------
 local function anchorAllParts(model)
+    -- 1. Congelamos la pieza maestra para que el maniquí sea un muro inamovible
+    local rootPart = model:FindFirstChild("HumanoidRootPart")
+    if rootPart then
+        rootPart.Anchored = true 
+    end
+
+    -- 2. Aseguramos que los brazos y piernas estén desanclados 
+    -- para que el motor pueda juntarlos al torso delgado.
     for _, part in ipairs(model:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = true
-            part.CanCollide = false -- Los jugadores pueden atravesarlo
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.Anchored = false 
+            
+            -- Dejamos que Roblox maneje las colisiones naturales para que 
+            -- sigan sintiéndose como una pared cuando los choques.
         end
     end
 end
@@ -66,12 +76,18 @@ local function applyClothing(model, outfit)
     description.Pants = outfit.items.pants or 0
     
     -- ============================================================
-    -- CONFIGURACIÓN ESTÉTICA: AVATARES MÁS DELGADOS Y ESTILIZADOS
+    -- CONFIGURACIÓN ESTÉTICA: AVATARES DELGADOS Y COMPACTOS
+    -- Para evitar el efecto "despegado", reducimos el ancho (WidthScale)
+    -- pero activamos AutomaticScaling para que las articulaciones se
+    -- junten correctamente al cuerpo.
     -- ============================================================
     description.WidthScale = 0.85      -- Reduce el ancho (85% del tamaño original)
-    description.DepthScale = 0.85      -- Reduce el grosor de perfil
-    description.HeightScale = 1.05     -- Los hace ligeramente más altos
-    description.ProportionScale = 0    -- Mantiene la proporción estilizada
+    description.DepthScale = 0.85      -- Reduce el grosor de perfil (85%)
+    description.HeightScale = 1.05     -- Los hace ligeramente más altos (105%)
+    
+    -- Muy importante: Proporción en 0 y AutomaticScaling para juntar articulaciones
+    description.ProportionScale = 0    
+    humanoid.AutomaticScalingEnabled = true -- Fuerza a Roblox a reubicar brazos/piernas
 
     -- ============================================================
     -- CONFIGURACIÓN DE COLOR DE PIEL NEUTRAL (Maniquí Gris Elegante)
