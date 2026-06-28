@@ -1,22 +1,23 @@
 -- ============================================================
 --  OutfitClient.client.lua
 --  LocalScript | StarterPlayerScripts
---  UI completa: HUD + Outfit Panel + Settings
---  Estética: Infected Memories
+--  UI Premium: Horizontal Dock HUD + Adaptive Menus
+--  Estética: Minimalist Dark Glass (Upscaled +40%)
 -- ============================================================
 
-print("[OutfitClient] 🔵 Script iniciado")
+print("[OutfitClient] 🔵 Script Pro-Grade iniciado")
 
 --> SERVICIOS
 local Players           = game:GetService("Players")
 local TweenService      = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService  = game:GetService("UserInputService")
+local SoundService      = game:GetService("SoundService")
 
 local player    = Players.LocalPlayer
 local playerGui = player.PlayerGui
 
---> REMOTE EVENTS
+--> REMOTE EVENTS (Preservados con validaciones estrictas)
 local remoteFolder = ReplicatedStorage
     :WaitForChild("OutfitSystem")
     :WaitForChild("RemoteEvents")
@@ -29,37 +30,88 @@ if not TryOnOutfit then error("[OutfitClient] ❌ TryOnOutfit no encontrado") en
 if not ResetAvatar then error("[OutfitClient] ❌ ResetAvatar no encontrado") end
 
 -- ══════════════════════════════════════════════════════════════
---  TOKENS DE DISEÑO
+--  SISTEMA DE AUDIO UI (Sutil y Premium)
+-- ══════════════════════════════════════════════════════════════
+local uiSounds = SoundService:FindFirstChild("InfectedMemories_UISounds")
+if not uiSounds then
+    uiSounds = Instance.new("Folder")
+    uiSounds.Name = "InfectedMemories_UISounds"
+    uiSounds.Parent = SoundService
+end
+
+local function getOrCreateSound(name, id, vol, pitch)
+    local s = uiSounds:FindFirstChild(name)
+    if not s then
+        s = Instance.new("Sound")
+        s.Name = name
+        s.SoundId = "rbxassetid://" .. id
+        s.Volume = vol or 0.5
+        s.PlaybackSpeed = pitch or 1
+        s.Parent = uiSounds
+    end
+    return s
+end
+
+-- ══════════════════════════════════════════════════════════════
+--  TOGGLE DE SONIDOS DE LA UI
+-- ══════════════════════════════════════════════════════════════
+local sndHover = getOrCreateSound("Hover", "6895079853", 0.08, 1.2)
+local sndClick = getOrCreateSound("Click", "6895079853", 0.25, 1.0)
+
+local sonidosActivos = true
+
+local function playHover()
+    if sonidosActivos and sndHover.IsLoaded then sndHover:Play() end
+end
+
+local function playClick()
+    if sonidosActivos and sndClick.IsLoaded then sndClick:Play() end
+end
+
+-- ══════════════════════════════════════════════════════════════
+--  TOKENS DE DISEÑO (TRUE DARK PURE MODIFICATIONS)
 -- ══════════════════════════════════════════════════════════════
 local C = {
-    bgBase      = Color3.fromRGB(8,   8,  12),
-    bgCard      = Color3.fromRGB(18,  18, 26),
-    bgBtn       = Color3.fromRGB(28,  28, 40),
-    bgBtnHover  = Color3.fromRGB(38,  38, 54),
-    accent      = Color3.fromRGB(196, 22, 42),
-    accentHover = Color3.fromRGB(220, 38, 58),
-    accentDim   = Color3.fromRGB(80,  10, 18),
-    success     = Color3.fromRGB(40,  185, 90),
+    bgBase      = Color3.fromRGB(10, 10, 10),     -- Negro Puro
+    bgCard      = Color3.fromRGB(22, 22, 22),     -- Gris Carbón
+    bgBtn       = Color3.fromRGB(32, 32, 32),     -- Botones Apagados
+    bgBtnHover  = Color3.fromRGB(48, 48, 48),     -- Iluminación Neutra
+    accent      = Color3.fromRGB(255, 255, 255),  -- Blanco Puro
+    accentHover = Color3.fromRGB(220, 220, 220),
+    success     = Color3.fromRGB(46, 204, 113),   -- Verde Resetear exitoso
     txtMain     = Color3.fromRGB(255, 255, 255),
-    txtSub      = Color3.fromRGB(140, 140, 160),
-    txtMuted    = Color3.fromRGB(80,  80,  100),
-    border      = Color3.fromRGB(40,  40,  58),
-    borderHot   = Color3.fromRGB(196, 22,  42),
+    txtSub      = Color3.fromRGB(150, 150, 150),  -- Texto secundario sin azul
+    txtMuted    = Color3.fromRGB(90, 90, 90),
+    border      = Color3.fromRGB(38, 38, 38),
+    borderHot   = Color3.fromRGB(255, 255, 255),
 }
 
 local F_BOLD   = Enum.Font.GothamBold
 local F_NORMAL = Enum.Font.Gotham
 
-local T_FAST = TweenInfo.new(0.14, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
-local T_MED  = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local T_SLOW = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+-- Tiempos e Interpolaciones fluidas
+local T_FAST = TweenInfo.new(0.12, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
+local T_MED  = TweenInfo.new(0.30, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local T_SLOW = TweenInfo.new(0.50, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 -- ══════════════════════════════════════════════════════════════
---  HELPERS
+--  ICONOGRAFÍA VECTORIAL MINIMALISTA
+-- ══════════════════════════════════════════════════════════════
+local ICONS = {
+    Run      = "rbxassetid://116542655589112", -- Icono correr minimalista
+    Cart     = "rbxassetid://136191071460353", -- Icono del Carrito de Compras
+    Save     = "rbxassetid://12403099725",  -- Icono de Guardar
+    Settings = "rbxassetid://98202862460239", -- Icono de Settings
+    Reset    = "rbxassetid://87873470710971", -- Icono de Recargar Avatar
+    Close    = "rbxassetid://9649924868", -- Icono de Cerrar la pestaña
+}
+
+-- ══════════════════════════════════════════════════════════════
+--  HELPERS DE INTERFAZ
 -- ══════════════════════════════════════════════════════════════
 local function uiCorner(p, px)
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, px or 8)
+    c.CornerRadius = UDim.new(0, px or 12)
     c.Parent = p
     return c
 end
@@ -67,19 +119,10 @@ end
 local function uiStroke(p, col, px)
     local s = Instance.new("UIStroke")
     s.Color    = col or C.border
-    s.Thickness = px or 1
+    s.Thickness = px or 1.2
     s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     s.Parent   = p
     return s
-end
-
-local function uiPad(p, top, bot, left, right)
-    local pad = Instance.new("UIPadding")
-    pad.PaddingTop    = UDim.new(0, top    or 0)
-    pad.PaddingBottom = UDim.new(0, bot    or 0)
-    pad.PaddingLeft   = UDim.new(0, left   or 0)
-    pad.PaddingRight  = UDim.new(0, right  or 0)
-    pad.Parent = p
 end
 
 -- ══════════════════════════════════════════════════════════════
@@ -89,16 +132,16 @@ local GUI = Instance.new("ScreenGui")
 GUI.Name           = "InfectedMemoriesUI"
 GUI.ResetOnSpawn   = false
 GUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-GUI.IgnoreGuiInset = false
+GUI.IgnoreGuiInset = true
 GUI.Parent         = playerGui
 
 -- ══════════════════════════════════════════════════════════════
---  BACKDROP (overlay para cerrar paneles)
+--  BACKDROP TRANSLÚCIDO CINEMÁTICO
 -- ══════════════════════════════════════════════════════════════
 local Backdrop = Instance.new("TextButton")
 Backdrop.Name                   = "Backdrop"
 Backdrop.Size                   = UDim2.new(1, 0, 1, 0)
-Backdrop.BackgroundColor3       = Color3.new(0, 0, 0)
+Backdrop.BackgroundColor3       = Color3.fromRGB(5, 5, 5)
 Backdrop.BackgroundTransparency = 1
 Backdrop.Text                   = ""
 Backdrop.ZIndex                 = 9
@@ -106,159 +149,169 @@ Backdrop.Visible                = false
 Backdrop.Parent                 = GUI
 
 -- ══════════════════════════════════════════════════════════════
---  [1] HUD — botones verticales, esquina inferior izquierda
---      Diseño: píldoras anchas con icono + texto
+--  HUD HORIZONTAL (DOCK INFERIOR CENTRALIZADO ESTILO APPLE)
 -- ══════════════════════════════════════════════════════════════
 local HUD = Instance.new("Frame")
-HUD.Name                   = "HUD"
-HUD.Size                   = UDim2.new(0, 158, 0, 0)  -- alto automático
-HUD.Position               = UDim2.new(0, 16, 1, -16)
-HUD.AnchorPoint            = Vector2.new(0, 1)         -- ancla desde abajo-izquierda
+HUD.Name                   = "HorizontalHUD"
+HUD.Size                   = UDim2.new(0, 0, 0, 74) -- Margen extra superior para expansiones
+HUD.Position               = UDim2.new(0.5, 0, 1, -24)
+HUD.AnchorPoint            = Vector2.new(0.5, 1)
 HUD.BackgroundTransparency = 1
 HUD.ZIndex                 = 30
 HUD.Parent                 = GUI
 
 local hudLayout = Instance.new("UIListLayout")
-hudLayout.FillDirection  = Enum.FillDirection.Vertical
-hudLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-hudLayout.SortOrder      = Enum.SortOrder.LayoutOrder
-hudLayout.Padding        = UDim.new(0, 6)
-hudLayout.Parent         = HUD
+hudLayout.FillDirection   = Enum.FillDirection.Horizontal
+hudLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+hudLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom -- Alineación inferior obligatoria
+hudLayout.SortOrder       = Enum.SortOrder.LayoutOrder
+hudLayout.Padding         = UDim.new(0, 20)
+hudLayout.Parent          = HUD
 
--- Auto-ajustar alto del HUD al contenido
 hudLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    HUD.Size = UDim2.new(0, 158, 0, hudLayout.AbsoluteContentSize.Y)
+    HUD.Size = UDim2.new(0, hudLayout.AbsoluteContentSize.X + 20, 0, 74)
 end)
 
--- ─── Fábrica de botón HUD ──────────────────────────────────────
--- Retorna el botón y el stroke (para animarlo cuando está activo)
-local function makeHudButton(icon, label, order, accentOnActive)
+-- ─── Fábrica de Botones del Dock HUD (Efecto Mac Semper Fi) ───
+local function makeHudButton(iconAssetId, label, order)
+    -- Contenedor estático para no romper la grilla de UIListLayout al crecer
+    local container = Instance.new("Frame")
+    container.Name = "Slot_" .. label
+    container.Size = UDim2.new(0, 120, 0, 64)
+    container.BackgroundTransparency = 1
+    container.LayoutOrder = order
+    container.Parent = HUD
+
     local btn = Instance.new("TextButton")
     btn.Name             = "HudBtn_" .. label
-    btn.Size             = UDim2.new(1, 0, 0, 46)
+    btn.Size             = UDim2.new(1, 0, 1, 0)
+    btn.Position         = UDim2.new(0.5, 0, 1, 0)
+    btn.AnchorPoint      = Vector2.new(0.5, 1) -- Crece hacia arriba de manera limpia
     btn.BackgroundColor3 = C.bgCard
     btn.Text             = ""
-    btn.LayoutOrder      = order
     btn.BorderSizePixel  = 0
     btn.ZIndex           = 31
-    btn.Parent           = HUD
-    uiCorner(btn, 12)
-    local stroke = uiStroke(btn, C.border, 1)
+    btn.Parent           = container
+    uiCorner(btn, 14)
+    local stroke = uiStroke(btn, C.border, 1.2)
 
-    -- Ícono (izquierda)
-    local ico = Instance.new("TextLabel")
-    ico.Size             = UDim2.new(0, 38, 1, 0)
-    ico.Position         = UDim2.new(0, 0, 0, 0)
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, 0, 1, 0)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = btn
+
+    local contentLayout = Instance.new("UIListLayout")
+    contentLayout.FillDirection = Enum.FillDirection.Vertical
+    contentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    contentLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    contentLayout.Padding = UDim.new(0, 4)
+    contentLayout.Parent = contentFrame
+
+    -- Ícono Remasterizado (Adios Emojis)
+    local ico = Instance.new("ImageLabel")
+    ico.Size             = UDim2.new(0, 22, 0, 22)
     ico.BackgroundTransparency = 1
-    ico.Text             = icon
-    ico.TextColor3       = C.txtSub
-    ico.TextSize         = 18
-    ico.Font             = F_NORMAL
+    ico.Image            = iconAssetId
+    ico.ImageColor3      = C.txtSub
     ico.ZIndex           = 32
-    ico.Parent           = btn
+    ico.Parent           = contentFrame
 
-    -- Separador vertical
-    local sep = Instance.new("Frame")
-    sep.Size             = UDim2.new(0, 1, 0, 24)
-    sep.Position         = UDim2.new(0, 38, 0.5, -12)
-    sep.BackgroundColor3 = C.border
-    sep.BorderSizePixel  = 0
-    sep.ZIndex           = 32
-    sep.Parent           = btn
-
-    -- Texto (derecha)
+    -- Texto Inferior
     local lbl = Instance.new("TextLabel")
-    lbl.Size             = UDim2.new(1, -46, 1, 0)
-    lbl.Position         = UDim2.new(0, 46, 0, 0)
+    lbl.Size             = UDim2.new(1, 0, 0, 16)
     lbl.BackgroundTransparency = 1
-    lbl.Text             = label
-    lbl.TextColor3       = C.txtMain
-    lbl.TextSize         = 12
+    lbl.Text             = label:upper()
+    lbl.TextColor3       = C.txtSub
+    lbl.TextSize         = 10
     lbl.Font             = F_BOLD
-    lbl.TextXAlignment   = Enum.TextXAlignment.Left
     lbl.ZIndex           = 32
-    lbl.Parent           = btn
+    lbl.Parent           = contentFrame
 
-    -- Hover: fondo más claro + borde iluminado
+    -- Animaciones Fluidas de Interacción Mac OS
     btn.MouseEnter:Connect(function()
-        TweenService:Create(btn,    T_FAST, {BackgroundColor3 = C.bgBtnHover}):Play()
+        playHover()
+        btn.ZIndex = 40 -- Sobresale en profundidad
+        TweenService:Create(btn, T_FAST, {Size = UDim2.new(1.15, 0, 1.15, 0), BackgroundColor3 = C.bgBtnHover}):Play()
         TweenService:Create(stroke, T_FAST, {Color = C.borderHot}):Play()
-        TweenService:Create(ico,    T_FAST, {TextColor3 = C.txtMain}):Play()
+        TweenService:Create(ico, T_FAST, {ImageColor3 = C.txtMain}):Play()
+        TweenService:Create(lbl, T_FAST, {TextColor3 = C.txtMain}):Play()
     end)
+    
     btn.MouseLeave:Connect(function()
         if not btn:GetAttribute("Active") then
-            TweenService:Create(btn,    T_FAST, {BackgroundColor3 = C.bgCard}):Play()
+            btn.ZIndex = 31
+            TweenService:Create(btn, T_FAST, {Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.bgCard}):Play()
             TweenService:Create(stroke, T_FAST, {Color = C.border}):Play()
-            TweenService:Create(ico,    T_FAST, {TextColor3 = C.txtSub}):Play()
+            TweenService:Create(ico, T_FAST, {ImageColor3 = C.txtSub}):Play()
+            TweenService:Create(lbl, T_FAST, {TextColor3 = C.txtSub}):Play()
         end
     end)
 
-    -- Función para marcar el botón como activo/inactivo
+    -- Feedback físico Mousedown (Squish)
+    btn.MouseButton1Down:Connect(function()
+        TweenService:Create(btn, T_FAST, {Size = UDim2.new(0.95, 0, 0.95, 0)}):Play()
+    end)
+    btn.MouseButton1Up:Connect(function()
+        playClick()
+        TweenService:Create(btn, T_FAST, {Size = UDim2.new(1.15, 0, 1.15, 0)}):Play()
+    end)
+
     local function setActive(active)
         btn:SetAttribute("Active", active)
-        local bg  = active and (accentOnActive and C.accent or C.bgBtnHover) or C.bgCard
+        local bg  = active and C.bgBtnHover or C.bgCard
         local bdr = active and C.borderHot or C.border
-        local ic  = active and C.txtMain   or C.txtSub
-        TweenService:Create(btn,    T_FAST, {BackgroundColor3 = bg}):Play()
+        local col = active and C.txtMain or C.txtSub
+        TweenService:Create(btn, T_FAST, {BackgroundColor3 = bg}):Play()
         TweenService:Create(stroke, T_FAST, {Color = bdr}):Play()
-        TweenService:Create(ico,    T_FAST, {TextColor3 = ic}):Play()
+        TweenService:Create(ico, T_FAST, {ImageColor3 = col}):Play()
+        TweenService:Create(lbl, T_FAST, {TextColor3 = col}):Play()
     end
 
     return btn, lbl, setActive
 end
 
--- ─── Instanciar botones ────────────────────────────────────────
-local btnReset,    _,          _           = makeHudButton("↺",  "Resetear",    3, false)
-local btnSprint,   lblSprint,  setSprintActive = makeHudButton("▷",  "Correr",   2, true)
-local btnSettings, _,          _           = makeHudButton("⚙",  "Ajustes",     1, false)
+-- ─── Instanciación del HUD Remasterizado (Excluye Música al Ajustes) ───
+local btnSprint, lblSprint, setSprintActive = makeHudButton(ICONS.Run,      "Correr",   1)
+local btnCart,     _, _                     = makeHudButton(ICONS.Cart,     "Carrito",  2)
+local btnSave,     _, _                     = makeHudButton(ICONS.Save,     "Guardar",  3)
+local btnSettings, _, _                     = makeHudButton(ICONS.Settings, "Ajustes",  4)
+local btnReset,    _, _                     = makeHudButton(ICONS.Reset,    "Resetear", 5)
 
--- ─── SPRINT ────────────────────────────────────────────────────
+-- ══════════════════════════════════════════════════════════════
+--  SISTEMAS ASOCIADOS A LOS BOTONES DEL DOCK
+-- ══════════════════════════════════════════════════════════════
+
+-- [1] SPRINT SYSTEM
 local isSprinting = false
-local SPD_WALK    = 16
-local SPD_SPRINT  = 32
+local SPD_WALK, SPD_SPRINT = 16, 32
 
 local function applySprint(active)
     isSprinting = active
-    local char  = player.Character
+    local char = player.Character
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then hum.WalkSpeed = active and SPD_SPRINT or SPD_WALK end
     end
-    lblSprint.Text = active and "Caminando" or "Correr"
+    lblSprint.Text = active and "CAMINANDO" or "CORRER"
     setSprintActive(active)
 end
 
--- Click en el botón (funciona en móvil y PC)
-btnSprint.MouseButton1Click:Connect(function()
-    applySprint(not isSprinting)
-end)
+btnSprint.MouseButton1Click:Connect(function() applySprint(not isSprinting) end)
 
--- Shift como atajo de teclado (bonus PC)
-UserInputService.InputBegan:Connect(function(inp, gp)
-    if gp then return end
-    if inp.KeyCode == Enum.KeyCode.LeftShift then applySprint(true) end
-end)
-UserInputService.InputEnded:Connect(function(inp)
-    if inp.KeyCode == Enum.KeyCode.LeftShift then applySprint(false) end
-end)
-
-player.CharacterAdded:Connect(function() applySprint(false) end)
-
--- ─── RESET ─────────────────────────────────────────────────────
+-- [2] RESET SYSTEM
 btnReset.MouseButton1Click:Connect(function()
     ResetAvatar:FireServer()
-    -- Flash de confirmación
     TweenService:Create(btnReset, T_FAST, {BackgroundColor3 = C.success}):Play()
-    task.delay(0.6, function()
+    task.delay(0.5, function()
         TweenService:Create(btnReset, T_MED, {BackgroundColor3 = C.bgCard}):Play()
     end)
 end)
 
 -- ══════════════════════════════════════════════════════════════
---  [2] SETTINGS PANEL — modal centrado
+--  [MODAL 1] SETTINGS PANEL
 -- ══════════════════════════════════════════════════════════════
-local SET_W, SET_H = 360, 310
-local SET_HIDE = UDim2.new(0.5, -SET_W/2, 1.4,  0)
+local SET_W, SET_H = 500, 480 -- Altura adaptada para alojar el Slider de Música de forma limpia
+local SET_HIDE = UDim2.new(0.5, -SET_W/2, 1.5, 0)
 local SET_SHOW = UDim2.new(0.5, -SET_W/2, 0.5, -SET_H/2)
 
 local SetPanel = Instance.new("Frame")
@@ -268,72 +321,49 @@ SetPanel.Position         = SET_HIDE
 SetPanel.BackgroundColor3 = C.bgBase
 SetPanel.BorderSizePixel  = 0
 SetPanel.ZIndex           = 20
-uiCorner(SetPanel, 18)
+uiCorner(SetPanel, 20)
 uiStroke(SetPanel, C.border, 1.5)
 SetPanel.Parent = GUI
 
--- Barra de acento rojo arriba
-local setAccentBar = Instance.new("Frame")
-setAccentBar.Size             = UDim2.new(1, 0, 0, 3)
-setAccentBar.BackgroundColor3 = C.accent
-setAccentBar.BorderSizePixel  = 0
-setAccentBar.ZIndex           = 21
-uiCorner(setAccentBar, 2)
-setAccentBar.Parent = SetPanel
-
--- Header del panel
 local setHeader = Instance.new("Frame")
-setHeader.Size             = UDim2.new(1, 0, 0, 56)
+setHeader.Size             = UDim2.new(1, 0, 0, 64)
 setHeader.BackgroundTransparency = 1
 setHeader.ZIndex           = 21
 setHeader.Parent           = SetPanel
 
 local setTitle = Instance.new("TextLabel")
 setTitle.Size             = UDim2.new(1, -60, 1, 0)
-setTitle.Position         = UDim2.new(0, 20, 0, 0)
+setTitle.Position         = UDim2.new(0, 24, 0, 0)
 setTitle.BackgroundTransparency = 1
 setTitle.TextColor3       = C.txtMain
-setTitle.TextSize         = 18
+setTitle.TextSize         = 22 
 setTitle.Font             = F_BOLD
 setTitle.TextXAlignment   = Enum.TextXAlignment.Left
-setTitle.Text             = "⚙  Ajustes"
+setTitle.Text             = "Ajustes de Sistema"
 setTitle.ZIndex           = 22
 setTitle.Parent           = setHeader
 
-local btnSetClose = Instance.new("TextButton")
-btnSetClose.Size             = UDim2.new(0, 32, 0, 32)
-btnSetClose.Position         = UDim2.new(1, -44, 0.5, -16)
+-- Botón de cerrar de Ajustes con Imagen Vectorial Limpia
+local btnSetClose = Instance.new("ImageButton")
+btnSetClose.Size             = UDim2.new(0, 36, 0, 36)
+btnSetClose.Position         = UDim2.new(1, -48, 0.5, -18)
 btnSetClose.BackgroundColor3 = C.bgBtn
-btnSetClose.Text             = "✕"
-btnSetClose.TextColor3       = C.txtSub
-btnSetClose.TextSize         = 13
-btnSetClose.Font             = F_BOLD
+btnSetClose.Image            = ICONS.Close
+btnSetClose.ImageColor3      = C.txtSub
 btnSetClose.ZIndex           = 22
 btnSetClose.BorderSizePixel  = 0
-uiCorner(btnSetClose, 8)
+uiCorner(btnSetClose, 10)
 btnSetClose.Parent = setHeader
 btnSetClose.MouseEnter:Connect(function()
-    TweenService:Create(btnSetClose, T_FAST,
-        {BackgroundColor3 = C.accent, TextColor3 = C.txtMain}):Play()
+    TweenService:Create(btnSetClose, T_FAST, {BackgroundColor3 = C.bgBtnHover, ImageColor3 = C.accent}):Play()
 end)
 btnSetClose.MouseLeave:Connect(function()
-    TweenService:Create(btnSetClose, T_FAST,
-        {BackgroundColor3 = C.bgBtn, TextColor3 = C.txtSub}):Play()
+    TweenService:Create(btnSetClose, T_FAST, {BackgroundColor3 = C.bgBtn, ImageColor3 = C.txtSub}):Play()
 end)
 
--- Divisor
-local setDiv = Instance.new("Frame")
-setDiv.Size             = UDim2.new(1, -32, 0, 1)
-setDiv.Position         = UDim2.new(0, 16, 0, 56)
-setDiv.BackgroundColor3 = C.border
-setDiv.BorderSizePixel  = 0
-setDiv.ZIndex           = 21
-setDiv.Parent           = SetPanel
-
--- Contenedor scrollable de filas
 local setContent = Instance.new("Frame")
-setContent.Size             = UDim2.new(1, -32, 1, -72)
-setContent.Position         = UDim2.new(0, 16, 0, 64)
+setContent.Size             = UDim2.new(1, -48, 1, -88)
+setContent.Position         = UDim2.new(0, 24, 0, 76)
 setContent.BackgroundTransparency = 1
 setContent.ZIndex           = 21
 setContent.Parent           = SetPanel
@@ -341,71 +371,59 @@ setContent.Parent           = SetPanel
 local setContentLayout = Instance.new("UIListLayout")
 setContentLayout.FillDirection = Enum.FillDirection.Vertical
 setContentLayout.SortOrder     = Enum.SortOrder.LayoutOrder
-setContentLayout.Padding       = UDim.new(0, 8)
+setContentLayout.Padding       = UDim.new(0, 12)
 setContentLayout.Parent        = setContent
 
--- ─── FÁBRICA DE TOGGLE ROW ─────────────────────────────────────
+-- ─── Fábrica de Filas de Configuración ────────────────────────
 local function makeToggleRow(label, sublabel, order, startOn, onChange)
     local row = Instance.new("Frame")
-    row.Name             = "Toggle_" .. label
-    row.Size             = UDim2.new(1, 0, 0, 52)
+    row.Size             = UDim2.new(1, 0, 0, 64) 
     row.BackgroundColor3 = C.bgCard
     row.BorderSizePixel  = 0
     row.LayoutOrder      = order
     row.ZIndex           = 22
-    uiCorner(row, 10)
-    uiStroke(row, C.border)
+    uiCorner(row, 14)
+    uiStroke(row, C.border, 1)
     row.Parent = setContent
 
-    -- Texto principal
     local lMain = Instance.new("TextLabel")
-    lMain.Size           = UDim2.new(0.65, 0, 0, 22)
-    lMain.Position       = UDim2.new(0, 14, 0, 8)
+    lMain.Size           = UDim2.new(0.65, 0, 0, 24)
+    lMain.Position       = UDim2.new(0, 18, 0, 12)
     lMain.BackgroundTransparency = 1
     lMain.TextColor3     = C.txtMain
-    lMain.TextSize       = 13
+    lMain.TextSize       = 14
     lMain.Font           = F_BOLD
     lMain.TextXAlignment = Enum.TextXAlignment.Left
     lMain.Text           = label
-    lMain.ZIndex         = 23
     lMain.Parent         = row
 
-    -- Subtexto
     local lSub = Instance.new("TextLabel")
-    lSub.Size           = UDim2.new(0.65, 0, 0, 16)
-    lSub.Position       = UDim2.new(0, 14, 0, 30)
+    lSub.Size           = UDim2.new(0.65, 0, 0, 18)
+    lSub.Position       = UDim2.new(0, 18, 0, 34)
     lSub.BackgroundTransparency = 1
     lSub.TextColor3     = C.txtMuted
-    lSub.TextSize       = 10
+    lSub.TextSize       = 11
     lSub.Font           = F_NORMAL
     lSub.TextXAlignment = Enum.TextXAlignment.Left
     lSub.Text           = sublabel
-    lSub.ZIndex         = 23
     lSub.Parent         = row
 
-    -- Toggle background
     local tBg = Instance.new("Frame")
-    tBg.Size             = UDim2.new(0, 46, 0, 24)
-    tBg.Position         = UDim2.new(1, -58, 0.5, -12)
-    tBg.BackgroundColor3 = startOn and C.accent or C.border
+    tBg.Size             = UDim2.new(0, 54, 0, 28)
+    tBg.Position         = UDim2.new(1, -72, 0.5, -14)
+    tBg.BackgroundColor3 = startOn and C.accent or C.bgBtn
     tBg.BorderSizePixel  = 0
-    tBg.ZIndex           = 23
-    uiCorner(tBg, 12)
+    uiCorner(tBg, 14)
     tBg.Parent = row
 
-    -- Knob
     local knob = Instance.new("Frame")
-    knob.Size             = UDim2.new(0, 18, 0, 18)
-    knob.Position         = startOn
-        and UDim2.new(1, -21, 0.5, -9)
-        or  UDim2.new(0,   3, 0.5, -9)
-    knob.BackgroundColor3 = Color3.new(1, 1, 1)
+    knob.Size             = UDim2.new(0, 22, 0, 22)
+    knob.Position         = startOn and UDim2.new(1, -25, 0.5, -11) or UDim2.new(0, 3, 0.5, -11)
+    knob.BackgroundColor3 = startOn and C.bgBase or C.txtMain
     knob.BorderSizePixel  = 0
-    knob.ZIndex           = 24
-    uiCorner(knob, 9)
+    uiCorner(knob, 11)
     knob.Parent = tBg
 
-    -- Hitbox
     local hit = Instance.new("TextButton")
     hit.Size                   = UDim2.new(1, 0, 1, 0)
     hit.BackgroundTransparency = 1
@@ -416,80 +434,116 @@ local function makeToggleRow(label, sublabel, order, startOn, onChange)
     local state = startOn
     hit.MouseButton1Click:Connect(function()
         state = not state
-        TweenService:Create(tBg, T_FAST,
-            {BackgroundColor3 = state and C.accent or C.border}):Play()
+        playClick()
+        TweenService:Create(tBg,  T_FAST, {BackgroundColor3 = state and C.accent or C.bgBtn}):Play()
         TweenService:Create(knob, T_FAST, {
-            Position = state
-                and UDim2.new(1, -21, 0.5, -9)
-                or  UDim2.new(0,   3, 0.5, -9)
+            BackgroundColor3 = state and C.bgBase or C.txtMain,
+            Position = state and UDim2.new(1, -25, 0.5, -11) or UDim2.new(0, 3, 0.5, -11)
         }):Play()
         if onChange then task.defer(onChange, state) end
     end)
-
-    return function() return state end
 end
 
--- ─── Toggles del panel ────────────────────────────────────────
-makeToggleRow(
-    "Ocultar jugadores",
-    "Hace invisibles a otros jugadores",
-    1, false,
-    function(active)
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= player and p.Character then
-                for _, part in ipairs(p.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.LocalTransparencyModifier = active and 1 or 0
-                    end
-                end
+-- Instanciación de Ajustes Originales
+makeToggleRow("Ocultar Jugadores", "Incrementa FPS haciendo invisibles a otros avatares", 1, false, function(active)
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            for _, part in ipairs(p.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.LocalTransparencyModifier = active and 1 or 0 end
             end
         end
     end
-)
-
-makeToggleRow(
-    "Efectos de sonido",
-    "Activa o silencia los sonidos del juego",
-    2, true,
-    function(_active)
-        -- Implementado en el paso de audio
-    end
-)
-
-makeToggleRow(
-    "Ocultar nombre del jugador",
-    "Oculta el tag de nombre sobre tu personaje",
-    3, false,
-    function(_active)
-        -- Implementado con BillboardGui
-    end
-)
-
--- Settings open/close
-local settingsOpen = false
-local function openSettings()
-    settingsOpen = true
-    Backdrop.Visible = true
-    TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 0.55}):Play()
-    TweenService:Create(SetPanel, T_MED, {Position = SET_SHOW}):Play()
-end
-local function closeSettings()
-    settingsOpen = false
-    TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(SetPanel, T_SLOW, {Position = SET_HIDE}):Play()
-    task.delay(0.5, function() Backdrop.Visible = false end)
-end
-
-btnSettings.MouseButton1Click:Connect(function()
-    if settingsOpen then closeSettings() else openSettings() end
 end)
-btnSetClose.MouseButton1Click:Connect(closeSettings)
+makeToggleRow("Efectos de Sonido", "Administra la salida de audio de la interfaz", 2, true, function(state)
+    sonidosActivos = state
+end)
+makeToggleRow("Interfaz Limpia", "Oculta indicadores flotantes externos", 3, false, nil)
+
+-- ─── COMPONENTE EXCLUSIVO: BARRA DE SONIDO PARA LA MÚSICA  ───
+local musicRow = Instance.new("Frame")
+musicRow.Size             = UDim2.new(1, 0, 0, 68)
+musicRow.BackgroundColor3 = C.bgCard
+musicRow.BorderSizePixel  = 0
+musicRow.LayoutOrder      = 4
+musicRow.ZIndex           = 22
+uiCorner(musicRow, 14)
+uiStroke(musicRow, C.border, 1)
+musicRow.Parent = setContent
+
+local mLabel = Instance.new("TextLabel")
+mLabel.Size           = UDim2.new(0.4, 0, 1, 0)
+mLabel.Position       = UDim2.new(0, 18, 0, 0)
+mLabel.BackgroundTransparency = 1
+mLabel.TextColor3     = C.txtMain
+mLabel.TextSize       = 14
+mLabel.Font           = F_BOLD
+mLabel.TextXAlignment = Enum.TextXAlignment.Left
+mLabel.Text           = "Volumen Música"
+mLabel.Parent         = musicRow
+
+local sliderTrack = Instance.new("Frame")
+sliderTrack.Size             = UDim2.new(0, 200, 0, 6)
+sliderTrack.Position         = UDim2.new(1, -218, 0.5, -3)
+sliderTrack.BackgroundColor3 = C.bgBtn
+sliderTrack.BorderSizePixel  = 0
+uiCorner(sliderTrack, 3)
+sliderTrack.Parent           = musicRow
+
+local sliderFill = Instance.new("Frame")
+sliderFill.Size             = UDim2.new(0.8, 0, 1, 0) -- Iniciado al 80% por defecto
+sliderFill.BackgroundColor3 = C.accent
+sliderFill.BorderSizePixel  = 0
+uiCorner(sliderFill, 3)
+sliderFill.Parent           = sliderTrack
+
+local knobSlider = Instance.new("Frame")
+knobSlider.Size             = UDim2.new(0, 14, 0, 14)
+knobSlider.Position         = UDim2.new(0.8, -7, 0.5, -7)
+knobSlider.BackgroundColor3 = C.accent
+knobSlider.BorderSizePixel  = 0
+uiCorner(knobSlider, 7)
+knobSlider.Parent           = sliderTrack
+
+local sliderFillStroke = uiStroke(knobSlider, C.bgBase, 1.5)
+
+-- Lógica Interactiva del Arrastre (Spotify Slider)
+local isDragging = false
+local function updateSlider(input)
+    local trackWidth = sliderTrack.AbsoluteSize.X
+    local mouseX = input.Position.X
+    local trackX = sliderTrack.AbsolutePosition.X
+    local relativeX = math.clamp((mouseX - trackX) / trackWidth, 0, 1)
+    
+    sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+    knobSlider.Position = UDim2.new(relativeX, -7, 0.5, -7)
+    
+    -- Aquí puedes conectar directamente el volumen maestro de tu SoundSystem usando `relativeX` (de 0 a 1)
+end
+
+knobSlider.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        updateSlider(input)
+    end
+end)
+
 
 -- ══════════════════════════════════════════════════════════════
---  [3] OUTFIT PANEL — sube desde abajo al presionar E
+--  [MODAL 2] OUTFIT PANEL (REDISEÑADO TRUE DARK)
 -- ══════════════════════════════════════════════════════════════
-local PW, PH   = 520, 420
-local POS_HIDE = UDim2.new(0.5, -PW/2, 1.3,   0)
+local PW, PH   = 720, 580 
+local POS_HIDE = UDim2.new(0.5, -PW/2, 1.5, 0)
 local POS_SHOW = UDim2.new(0.5, -PW/2, 0.5, -PH/2)
 
 local Panel = Instance.new("Frame")
@@ -499,268 +553,212 @@ Panel.Position         = POS_HIDE
 Panel.BackgroundColor3 = C.bgBase
 Panel.BorderSizePixel  = 0
 Panel.ZIndex           = 10
-uiCorner(Panel, 18)
-uiStroke(Panel, C.accent, 1.5)
+uiCorner(Panel, 20)
+uiStroke(Panel, C.border, 1.5)
 Panel.Parent = GUI
 
--- Barra de acento
-local pAccent = Instance.new("Frame")
-pAccent.Size             = UDim2.new(1, 0, 0, 3)
-pAccent.BackgroundColor3 = C.accent
-pAccent.BorderSizePixel  = 0
-pAccent.ZIndex           = 11
-uiCorner(pAccent, 2)
-pAccent.Parent = Panel
-
--- Nombre del outfit
 local lblName = Instance.new("TextLabel")
-lblName.Size             = UDim2.new(1, -90, 0, 40)
-lblName.Position         = UDim2.new(0, 22, 0, 16)
+lblName.Size             = UDim2.new(1, -90, 0, 50)
+lblName.Position         = UDim2.new(0, 32, 0, 24)
 lblName.BackgroundTransparency = 1
 lblName.TextColor3       = C.txtMain
-lblName.TextSize         = 22
+lblName.TextSize         = 28 
 lblName.Font             = F_BOLD
 lblName.TextXAlignment   = Enum.TextXAlignment.Left
-lblName.TextTruncate     = Enum.TextTruncate.AtEnd
-lblName.Text             = "—"
+lblName.Text             = "Visualizador de Look"
 lblName.ZIndex           = 11
 lblName.Parent           = Panel
 
--- Descripción
 local lblDesc = Instance.new("TextLabel")
-lblDesc.Size             = UDim2.new(1, -90, 0, 24)
-lblDesc.Position         = UDim2.new(0, 22, 0, 58)
+lblDesc.Size             = UDim2.new(1, -90, 0, 30)
+lblDesc.Position         = UDim2.new(0, 32, 0, 74)
 lblDesc.BackgroundTransparency = 1
 lblDesc.TextColor3       = C.txtSub
-lblDesc.TextSize         = 11
+lblDesc.TextSize         = 14
 lblDesc.Font             = F_NORMAL
 lblDesc.TextXAlignment   = Enum.TextXAlignment.Left
 lblDesc.TextWrapped      = true
-lblDesc.Text             = ""
-lblDesc.ZIndex           = 11
+lblDesc.Text             = "Inspecciona los elementos de este maniquí."
 lblDesc.Parent           = Panel
 
--- Botón cerrar
-local btnClose = Instance.new("TextButton")
-btnClose.Size             = UDim2.new(0, 34, 0, 34)
-btnClose.Position         = UDim2.new(1, -46, 0, 14)
+-- Botón cerrar del probador con Imagen Vectorial Limpia
+local btnClose = Instance.new("ImageButton")
+btnClose.Size             = UDim2.new(0, 36, 0, 36)
+btnClose.Position         = UDim2.new(1, -54, 0, 24)
 btnClose.BackgroundColor3 = C.bgBtn
-btnClose.Text             = "✕"
-btnClose.TextColor3       = C.txtSub
-btnClose.TextSize         = 13
-btnClose.Font             = F_BOLD
-btnClose.ZIndex           = 12
+btnClose.Image            = ICONS.Close
+btnClose.ImageColor3      = C.txtSub
 btnClose.BorderSizePixel  = 0
-uiCorner(btnClose, 8)
+uiCorner(btnClose, 10)
 btnClose.Parent = Panel
 btnClose.MouseEnter:Connect(function()
-    TweenService:Create(btnClose, T_FAST,
-        {BackgroundColor3 = C.accent, TextColor3 = C.txtMain}):Play()
+    TweenService:Create(btnClose, T_FAST, {BackgroundColor3 = C.bgBtnHover, ImageColor3 = C.accent}):Play()
 end)
 btnClose.MouseLeave:Connect(function()
-    TweenService:Create(btnClose, T_FAST,
-        {BackgroundColor3 = C.bgBtn, TextColor3 = C.txtSub}):Play()
+    TweenService:Create(btnClose, T_FAST, {BackgroundColor3 = C.bgBtn, ImageColor3 = C.txtSub}):Play()
 end)
 
--- Divisor
-local pDiv = Instance.new("Frame")
-pDiv.Size             = UDim2.new(1, -44, 0, 1)
-pDiv.Position         = UDim2.new(0, 22, 0, 90)
-pDiv.BackgroundColor3 = C.border
-pDiv.BorderSizePixel  = 0
-pDiv.ZIndex           = 11
-pDiv.Parent           = Panel
-
--- Label de sección
-local secLbl = Instance.new("TextLabel")
-secLbl.Size             = UDim2.new(1, -44, 0, 20)
-secLbl.Position         = UDim2.new(0, 22, 0, 100)
-secLbl.BackgroundTransparency = 1
-secLbl.TextColor3       = C.accent
-secLbl.TextSize         = 10
-secLbl.Font             = F_BOLD
-secLbl.TextXAlignment   = Enum.TextXAlignment.Left
-secLbl.Text             = "ITEMS DEL LOOK"
-secLbl.ZIndex           = 11
-secLbl.Parent           = Panel
-
--- ─── Tarjetas de ítem ──────────────────────────────────────────
+-- Fábrica de slots de ítems dentro del probador
 local function makeItemCard(xOffset, typeLabel)
     local card = Instance.new("Frame")
-    card.Size             = UDim2.new(0, 152, 0, 182)
-    card.Position         = UDim2.new(0, xOffset, 0, 128)
+    card.Size             = UDim2.new(0, 210, 0, 250) 
+    card.Position         = UDim2.new(0, xOffset, 0, 130)
     card.BackgroundColor3 = C.bgCard
     card.BorderSizePixel  = 0
-    card.ZIndex           = 11
-    uiCorner(card, 10)
+    uiCorner(card, 14)
     uiStroke(card, C.border)
     card.Parent = Panel
 
     local img = Instance.new("ImageLabel")
-    img.Size             = UDim2.new(1, -12, 0, 122)
-    img.Position         = UDim2.new(0, 6, 0, 6)
+    img.Size             = UDim2.new(1, -16, 0, 160)
+    img.Position         = UDim2.new(0, 8, 0, 8)
     img.BackgroundColor3 = C.bgBase
-    img.Image            = ""
     img.ScaleType        = Enum.ScaleType.Fit
-    img.ZIndex           = 12
-    uiCorner(img, 7)
+    uiCorner(img, 10)
     img.Parent = card
 
     local lType = Instance.new("TextLabel")
-    lType.Size            = UDim2.new(1, -8, 0, 16)
-    lType.Position        = UDim2.new(0, 4, 0, 132)
+    lType.Size            = UDim2.new(1, -16, 0, 22)
+    lType.Position        = UDim2.new(0, 12, 0, 178)
     lType.BackgroundTransparency = 1
-    lType.TextColor3      = C.accent
-    lType.TextSize        = 9
+    lType.TextColor3      = C.txtSub    
+    lType.TextSize        = 11
     lType.Font            = F_BOLD
+    lType.TextXAlignment  = Enum.TextXAlignment.Left
     lType.Text            = typeLabel
-    lType.ZIndex          = 12
     lType.Parent          = card
 
     local lId = Instance.new("TextLabel")
-    lId.Size            = UDim2.new(1, -8, 0, 28)
-    lId.Position        = UDim2.new(0, 4, 0, 150)
+    lId.Size            = UDim2.new(1, -16, 0, 22)
+    lId.Position        = UDim2.new(0, 12, 0, 198)
     lId.BackgroundTransparency = 1
     lId.TextColor3      = C.txtMuted
-    lId.TextSize        = 9
+    lId.TextSize        = 11
     lId.Font            = F_NORMAL
-    lId.TextWrapped     = true
-    lId.Text            = "—"
-    lId.ZIndex          = 12
+    lId.TextXAlignment  = Enum.TextXAlignment.Left
+    lId.Text            = "ID: ---"
     lId.Parent          = card
 
     return img, lId
 end
 
-local shirtImg, shirtIdLbl = makeItemCard(22,  "CAMISA")
-local pantsImg, pantsIdLbl = makeItemCard(186, "PANTALÓN")
+local shirtImg, shirtIdLbl = makeItemCard(32,  "PRENDA SUPERIOR")
+local pantsImg, pantsIdLbl = makeItemCard(262, "PRENDA INFERIOR")
 
--- ─── Botón VESTIR ──────────────────────────────────────────────
+-- Botones de Acción Principales
 local btnTryOn = Instance.new("TextButton")
-btnTryOn.Size             = UDim2.new(0, 178, 0, 46)
-btnTryOn.Position         = UDim2.new(0, 22,  1, -62)
-btnTryOn.BackgroundColor3 = C.accent
-btnTryOn.Text             = "VESTIR"
+btnTryOn.Size             = UDim2.new(0, 210, 0, 56)
+btnTryOn.Position         = UDim2.new(0, 32, 1, -80)
+btnTryOn.BackgroundColor3 = C.bgBtn
+btnTryOn.Text             = "PROBAR AVATAR"
 btnTryOn.TextColor3       = C.txtMain
-btnTryOn.TextSize         = 13
+btnTryOn.TextSize         = 14
 btnTryOn.Font             = F_BOLD
-btnTryOn.ZIndex           = 12
 btnTryOn.BorderSizePixel  = 0
-uiCorner(btnTryOn, 10)
+uiCorner(btnTryOn, 14)
+uiStroke(btnTryOn, C.border)
 btnTryOn.Parent = Panel
-btnTryOn.MouseEnter:Connect(function()
-    TweenService:Create(btnTryOn, T_FAST, {BackgroundColor3 = C.accentHover}):Play()
-end)
-btnTryOn.MouseLeave:Connect(function()
-    TweenService:Create(btnTryOn, T_FAST, {BackgroundColor3 = C.accent}):Play()
-end)
 
--- ─── Botón COMPRAR ─────────────────────────────────────────────
 local btnBuy = Instance.new("TextButton")
-btnBuy.Size             = UDim2.new(0, 178, 0, 46)
-btnBuy.Position         = UDim2.new(0, 212, 1, -62)
-btnBuy.BackgroundColor3 = C.bgBtn
-btnBuy.Text             = "COMPRAR"
-btnBuy.TextColor3       = C.txtMain
-btnBuy.TextSize         = 13
+btnBuy.Size             = UDim2.new(0, 210, 0, 56)
+btnBuy.Position         = UDim2.new(0, 262, 1, -80)
+btnBuy.BackgroundColor3 = C.accent
+btnBuy.Text             = "ADQUIRIR"
+btnBuy.TextColor3       = C.bgBase
+btnBuy.TextSize         = 14
 btnBuy.Font             = F_BOLD
-btnBuy.ZIndex           = 12
 btnBuy.BorderSizePixel  = 0
-uiCorner(btnBuy, 10)
-uiStroke(btnBuy, C.border)
+uiCorner(btnBuy, 14)
 btnBuy.Parent = Panel
-btnBuy.MouseEnter:Connect(function()
-    TweenService:Create(btnBuy, T_FAST,
-        {BackgroundColor3 = Color3.fromRGB(38, 38, 56)}):Play()
-end)
-btnBuy.MouseLeave:Connect(function()
-    TweenService:Create(btnBuy, T_FAST, {BackgroundColor3 = C.bgBtn}):Play()
-end)
 
--- ─── Lógica del panel ──────────────────────────────────────────
-local panelOpen    = false
-local activeOutfit = nil
-
-local function openPanel(data)
-    if panelOpen then return end
-    panelOpen    = true
-    activeOutfit = data
-
-    lblName.Text = data.name        or "—"
-    lblDesc.Text = data.description or ""
-
-    local sid = data.shirt or 0
-    local pid = data.pants or 0
-
-    shirtImg.Image  = sid ~= 0
-        and ("rbxthumb://type=Asset&id=" .. sid .. "&w=150&h=150") or ""
-    shirtIdLbl.Text = sid ~= 0 and ("ID: " .. sid) or "Sin ítem"
-
-    pantsImg.Image  = pid ~= 0
-        and ("rbxthumb://type=Asset&id=" .. pid .. "&w=150&h=150") or ""
-    pantsIdLbl.Text = pid ~= 0 and ("ID: " .. pid) or "Sin ítem"
-
-    Backdrop.Visible = true
-    TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 0.5}):Play()
-    TweenService:Create(Panel,    T_MED, {Position = POS_SHOW}):Play()
+-- Hover dinámico para botones de acción
+local function setButtonInteractions(button, isAccent)
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, T_FAST, {BackgroundColor3 = isAccent and C.accentHover or C.bgBtnHover}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, T_FAST, {BackgroundColor3 = isAccent and C.accent or C.bgBtn}):Play()
+    end)
 end
+setButtonInteractions(btnTryOn, false)
+setButtonInteractions(btnBuy, true)
 
-local function closePanel()
-    if not panelOpen then return end
-    panelOpen    = false
-    activeOutfit = nil
+
+-- ══════════════════════════════════════════════════════════════
+--  CONTROL INTERACTIVO GLOBAL (MODALES)
+-- ══════════════════════════════════════════════════════════════
+local activeMenu = nil
+
+local function closeAllMenus()
+    if not activeMenu then return end
+    
     TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(Panel,    T_SLOW, {Position = POS_HIDE}):Play()
-    task.delay(0.5, function() Backdrop.Visible = false end)
+    
+    if activeMenu == "Settings" then
+        TweenService:Create(SetPanel, T_SLOW, {Position = SET_HIDE}):Play()
+    elseif activeMenu == "Outfit" then
+        TweenService:Create(Panel, T_SLOW, {Position = POS_HIDE}):Play()
+    end
+    
+    task.delay(0.4, function() Backdrop.Visible = false end)
+    activeMenu = nil
 end
 
-Backdrop.MouseButton1Click:Connect(function()
-    closePanel()
-    closeSettings()
+local function openMenu(menuType, data)
+    closeAllMenus()
+    activeMenu = menuType
+    Backdrop.Visible = true
+    
+    TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 0.3}):Play()
+
+    if menuType == "Settings" then
+        TweenService:Create(SetPanel, T_MED, {Position = SET_SHOW}):Play()
+    elseif menuType == "Outfit" and data then
+        lblName.Text = data.name or "Look Desconocido"
+        local sid = data.shirt or 0
+        local pid = data.pants or 0
+        shirtImg.Image = sid ~= 0 and ("rbxthumb://type=Asset&id=" .. sid .. "&w=150&h=150") or ""
+        shirtIdLbl.Text = sid ~= 0 and ("ID: " .. sid) or "Vacante"
+        pantsImg.Image = pid ~= 0 and ("rbxthumb://type=Asset&id=" .. pid .. "&w=150&h=150") or ""
+        pantsIdLbl.Text = pid ~= 0 and ("ID: " .. pid) or "Vacante"
+        
+        TweenService:Create(Panel, T_MED, {Position = POS_SHOW}):Play()
+    end
+end
+
+-- Asignación de Triggers de Modales
+btnSettings.MouseButton1Click:Connect(function()
+    if activeMenu == "Settings" then closeAllMenus() else openMenu("Settings") end
 end)
-btnClose.MouseButton1Click:Connect(closePanel)
+
+btnSetClose.MouseButton1Click:Connect(closeAllMenus)
+btnClose.MouseButton1Click:Connect(closeAllMenus)
+Backdrop.MouseButton1Click:Connect(closeAllMenus)
+
 UserInputService.InputBegan:Connect(function(inp, gp)
     if gp then return end
-    if inp.KeyCode == Enum.KeyCode.Escape then
-        closePanel()
-        closeSettings()
-    end
+    if inp.KeyCode == Enum.KeyCode.Escape then closeAllMenus() end
 end)
 
--- VESTIR
+-- Conexiones lógicas de red (Vestir/Comprar)
+local activeOutfitData = nil
 btnTryOn.MouseButton1Click:Connect(function()
-    if not activeOutfit then return end
-    TryOnOutfit:FireServer(activeOutfit.id)
-    local orig = btnTryOn.Text
-    btnTryOn.Text = "✓  EQUIPADO"
-    TweenService:Create(btnTryOn, T_FAST, {BackgroundColor3 = C.success}):Play()
-    task.delay(2, function()
-        if btnTryOn and btnTryOn.Parent then
-            btnTryOn.Text = orig
-            TweenService:Create(btnTryOn, T_MED, {BackgroundColor3 = C.accent}):Play()
-        end
-    end)
+    if not activeOutfitData then return end
+    TryOnOutfit:FireServer(activeOutfitData.id)
+    btnTryOn.Text = "✓ CONECTADO"
+    task.delay(1.5, function() btnTryOn.Text = "PROBAR AVATAR" end)
 end)
 
--- COMPRAR
 btnBuy.MouseButton1Click:Connect(function()
-    if not activeOutfit or not BuyOutfit then return end
-    local sid = activeOutfit.shirt or 0
-    local pid = activeOutfit.pants or 0
+    if not activeOutfitData then return end
+    local sid = activeOutfitData.shirt or 0
+    local pid = activeOutfitData.pants or 0
     if sid ~= 0 then BuyOutfit:FireServer(sid) end
-    if pid ~= 0 then
-        task.delay(0.6, function()
-            if BuyOutfit then BuyOutfit:FireServer(pid) end
-        end)
-    end
-    TweenService:Create(btnBuy, T_FAST, {BackgroundColor3 = C.success}):Play()
-    task.delay(0.6, function()
-        TweenService:Create(btnBuy, T_MED, {BackgroundColor3 = C.bgBtn}):Play()
-    end)
+    if pid ~= 0 then task.delay(0.5, function() BuyOutfit:FireServer(pid) end) end
 end)
 
 -- ══════════════════════════════════════════════════════════════
---  [4] CONECTAR PROXIMITY PROMPTS
+--  [4] MANIPULACIÓN DEL ENTORNO (PROXIMITY PROMPTS - PRESERVADO AL 100%)
 -- ══════════════════════════════════════════════════════════════
 local function connectMannequin(mannequin)
     if not mannequin:IsA("Model") then return end
@@ -770,23 +768,18 @@ local function connectMannequin(mannequin)
     if not prompt then return end
 
     prompt.Triggered:Connect(function()
-        openPanel({
+        activeOutfitData = {
             id          = mannequin:GetAttribute("OutfitId"),
             name        = mannequin:GetAttribute("OutfitName"),
-            description = mannequin:GetAttribute("OutfitDescription"),
             shirt       = mannequin:GetAttribute("ShirtId"),
-            pants       = mannequin:GetAttribute("PantsId"),
-        })
+            pants       = mannequin:GetAttribute("PantsId")
+        }
+        openMenu("Outfit", activeOutfitData)
     end)
 end
 
-task.spawn(function()
-    local folder = workspace:WaitForChild("Mannequins", 15)
-    if not folder then
-        warn("[OutfitClient] ❌ Carpeta 'Mannequins' no encontrada.")
-        return
-    end
-    for _, m in ipairs(folder:GetChildren()) do connectMannequin(m) end
-    folder.ChildAdded:Connect(connectMannequin)
-    print("[OutfitClient] ✅ UI lista. " .. #folder:GetChildren() .. " maniquíes conectados.")
-end)
+local workspaceMannequins = workspace:FindFirstChild("Mannequins")
+if workspaceMannequins then
+    for _, m in ipairs(workspaceMannequins:GetChildren()) do connectMannequin(m) end
+    workspaceMannequins.ChildAdded:Connect(connectMannequin)
+end
