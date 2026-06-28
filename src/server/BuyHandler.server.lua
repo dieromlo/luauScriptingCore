@@ -1,36 +1,31 @@
 -- ============================================================
 --  BuyHandler.server.lua
 --  Script | ServerScriptService
---  Recibe peticiones de compra del cliente y abre el
---  diálogo de compra oficial de Roblox.
---  MarketplaceService:PromptPurchase solo corre en servidor.
+--  Abre el diálogo de compra oficial de Roblox.
 -- ============================================================
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage  = game:GetService("ReplicatedStorage")
 
-local remoteFolder = ReplicatedStorage
-    :WaitForChild("OutfitSystem")
-    :WaitForChild("RemoteEvents")
+local OutfitSystem = ReplicatedStorage:WaitForChild("OutfitSystem",  15)
+local RemoteEvents = OutfitSystem:WaitForChild("RemoteEvents",        10)
+local BuyOutfit    = RemoteEvents:WaitForChild("BuyOutfit",           10)
 
-local BuyOutfit = remoteFolder:WaitForChild("BuyOutfit")
+if not BuyOutfit then
+    error("[BuyHandler] ❌ BuyOutfit no encontrado. Revisa los init.meta.json")
+end
 
 BuyOutfit.OnServerEvent:Connect(function(player, assetId)
-    -- Validar que el ID es un número real
     if typeof(assetId) ~= "number" or assetId <= 0 then
         warn("[BuyHandler] Asset ID inválido de " .. player.Name)
         return
     end
-
-    local success, err = pcall(function()
+    local ok, err = pcall(function()
         MarketplaceService:PromptPurchase(player, assetId)
     end)
-
-    if not success then
-        warn("[BuyHandler] Error al abrir prompt para "
-            .. player.Name .. ": " .. tostring(err))
+    if not ok then
+        warn("[BuyHandler] Error: " .. tostring(err))
     else
-        print("[BuyHandler] ✅ Prompt de compra abierto para "
-            .. player.Name .. " → Asset " .. assetId)
+        print("[BuyHandler] ✅ Prompt abierto → " .. player.Name .. " → " .. assetId)
     end
 end)

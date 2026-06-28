@@ -1,124 +1,100 @@
 -- ============================================================
 --  AvatarHandler.server.lua
 --  Script | ServerScriptService
---  Maneja Try On (probarse ropa) y Reset (volver a la skin original)
+--  Escucha TryOnOutfit y ResetAvatar desde el cliente.
 -- ============================================================
 
 local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local OutfitData    = require(ReplicatedStorage.OutfitSystem.OutfitData)
-local RemoteEvents  = ReplicatedStorage.OutfitSystem.RemoteEvents
-local TryOnOutfit   = RemoteEvents:WaitForChild("TryOnOutfit")
-local ResetAvatar   = RemoteEvents:WaitForChild("ResetAvatar")
+local OutfitSystem  = ReplicatedStorage:WaitForChild("OutfitSystem", 15)
+local OutfitData    = require(OutfitSystem:WaitForChild("OutfitData", 10))
+local RemoteEvents  = OutfitSystem:WaitForChild("RemoteEvents", 10)
 
--- ----------------------------------------------------------------
--- Cache de apariencias originales
--- Guardamos cómo era el avatar ANTES de probarse ropa
--- Key: Player → Value: HumanoidDescription original
--- ----------------------------------------------------------------
+-- WaitForChild en los RemoteEvents para respetar el tiempo de replicación de Rojo
+local TryOnOutfit = RemoteEvents:WaitForChild("TryOnOutfit", 10)
+local ResetAvatar = RemoteEvents:WaitForChild("ResetAvatar",  10)
+
+if not TryOnOutfit then
+    error("[AvatarHandler] ❌ TryOnOutfit no encontrado. Revisa los init.meta.json")
+end
+if not ResetAvatar then
+    error("[AvatarHandler] ❌ ResetAvatar no encontrado. Revisa los init.meta.json")
+end
+
+-- Cache: guarda la apariencia original de cada jugador
 local originalDescriptions = {}
 
--- Cuando el jugador aparece en el juego, guardamos su look
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         local humanoid = character:WaitForChild("Humanoid", 10)
         if not humanoid then return end
-
-        -- Esperar a que cargue la apariencia completamente
-        task.wait(2)
-
-        local success, description = pcall(function()
+        task.wait(2) -- Dar tiempo a que cargue la apariencia completa
+        local ok, desc = pcall(function()
             return humanoid:GetAppliedDescription()
         end)
-
-        if success and description then
-            originalDescriptions[player] = description
+        if ok and desc then
+            originalDescriptions[player] = desc
             print("[AvatarHandler] Apariencia guardada: " .. player.Name)
         end
     end)
 end)
 
--- Limpiar al desconectarse
 Players.PlayerRemoving:Connect(function(player)
     originalDescriptions[player] = nil
 end)
 
--- ----------------------------------------------------------------
--- EVENTO: TryOnOutfit
--- El cliente manda el ID del outfit. El servidor aplica la ropa.
--- ----------------------------------------------------------------
+-- ─── VESTIR ────────────────────────────────────────────────────
 TryOnOutfit.OnServerEvent:Connect(function(player, outfitId)
-    -- Validaciones de seguridad
     if typeof(outfitId) ~= "number" then return end
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
 
-    local character = player.Character
-    if not character then return end
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    -- Buscar el outfit en los datos
     local outfit = OutfitData.GetOutfitById(outfitId)
     if not outfit then
-        warn("[AvatarHandler] Outfit ID inválido recibido de " .. player.Name .. ": " .. tostring(outfitId))
+        warn("[AvatarHandler] Outfit ID inválido: " .. tostring(outfitId))
         return
     end
 
-    -- Eliminar ropa actual del jugador
-    for _, child in ipairs(character:GetChildren()) do
-        if child:IsA("Shirt") or child:IsA("Pants") then
-            child:Destroy()
-        end
+    -- Eliminar ropa actual
+    for _, child in ipairs(char:GetChildren()) do
+        if child:IsA("Shirt") or child:IsA("Pants") then child:Destroy() end
     end
 
-    -- Aplicar la ropa del outfit
-    if outfit.items.shirt and outfit.items.shirt ~= 0 then
+    local sid = outfit.items and outfit.items.shirt or 0
+    local pid = outfit.items and outfit.items.pants or 0
+
+    if sid ~= 0 then
         local shirt = Instance.new("Shirt")
-        shirt.ShirtTemplate = "rbxassetid://" .. tostring(outfit.items.shirt)
-        shirt.Parent = character
+        shirt.ShirtTemplate = "rbxassetid://" .. tostring(sid)
+        shirt.Parent = char
     end
-
-    if outfit.items.pants and outfit.items.pants ~= 0 then
+    if pid ~= 0 then
         local pants = Instance.new("Pants")
-        pants.PantsTemplate = "rbxassetid://" .. tostring(outfit.items.pants)
-        pants.Parent = character
+        pants.PantsTemplate = "rbxassetid://" .. tostring(pid)
+        pants.Parent = char
     end
 
-    print("[AvatarHandler] ✅ " .. player.Name .. " se probó: " .. outfit.name)
+    print("[AvatarHandler] ✅ " .. player.Name .. " → " .. outfit.name)
 end)
 
--- ----------------------------------------------------------------
--- EVENTO: ResetAvatar
--- El cliente pide volver a su look original
--- ----------------------------------------------------------------
+-- ─── RESETEAR ──────────────────────────────────────────────────
 ResetAvatar.OnServerEvent:Connect(function(player)
-    local character = player.Character
-    if not character then return end
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
 
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    local originalDesc = originalDescriptions[player]
-
-    if originalDesc then
-        -- Restaurar descripción completa original
-        local success, err = pcall(function()
-            humanoid:ApplyDescription(originalDesc)
-        end)
-
-        if success then
-            print("[AvatarHandler] ✅ Avatar reseteado: " .. player.Name)
-        else
-            warn("[AvatarHandler] Error al resetear: " .. tostring(err))
-        end
+    local desc = originalDescriptions[player]
+    if desc then
+        pcall(function() hum:ApplyDescription(desc) end)
+        print("[AvatarHandler] ✅ Reset: " .. player.Name)
     else
-        -- Fallback: solo eliminar la ropa
-        for _, child in ipairs(character:GetChildren()) do
-            if child:IsA("Shirt") or child:IsA("Pants") then
-                child:Destroy()
-            end
+        -- Fallback: solo borrar la ropa
+        for _, child in ipairs(char:GetChildren()) do
+            if child:IsA("Shirt") or child:IsA("Pants") then child:Destroy() end
         end
-        print("[AvatarHandler] ⚠️ Reset fallback (sin descripción guardada): " .. player.Name)
     end
 end)
