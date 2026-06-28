@@ -771,6 +771,7 @@ local function connectMannequin(mannequin)
         activeOutfitData = {
             id          = mannequin:GetAttribute("OutfitId"),
             name        = mannequin:GetAttribute("OutfitName"),
+            description = mannequin:GetAttribute("OutfitDescription"),
             shirt       = mannequin:GetAttribute("ShirtId"),
             pants       = mannequin:GetAttribute("PantsId")
         }
