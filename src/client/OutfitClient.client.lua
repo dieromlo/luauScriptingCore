@@ -55,8 +55,8 @@ end
 -- ══════════════════════════════════════════════════════════════
 --  TOGGLE DE SONIDOS DE LA UI
 -- ══════════════════════════════════════════════════════════════
-local sndHover = getOrCreateSound("Hover", "6895079853", 0.08, 1.2)
-local sndClick = getOrCreateSound("Click", "6895079853", 0.25, 1.0)
+local sndHover = getOrCreateSound("Hover", "6895079853", 0.5, 1.2)
+local sndClick = getOrCreateSound("Click", "6895079853", 0.5, 1.0)
 
 local sonidosActivos = true
 
@@ -207,7 +207,7 @@ local function makeHudButton(iconAssetId, label, order)
     contentLayout.Padding = UDim.new(0, 4)
     contentLayout.Parent = contentFrame
 
-    -- Ícono Remasterizado (Adios Emojis)
+    -- Ícono Remasterizado
     local ico = Instance.new("ImageLabel")
     ico.Size             = UDim2.new(0, 22, 0, 22)
     ico.BackgroundTransparency = 1
@@ -227,7 +227,7 @@ local function makeHudButton(iconAssetId, label, order)
     lbl.ZIndex           = 32
     lbl.Parent           = contentFrame
 
-    -- Animaciones Fluidas de Interacción Mac OS
+    -- Animaciones Fluidas de Interacción
     btn.MouseEnter:Connect(function()
         playHover()
         btn.ZIndex = 40 -- Sobresale en profundidad
@@ -247,7 +247,7 @@ local function makeHudButton(iconAssetId, label, order)
         end
     end)
 
-    -- Feedback físico Mousedown (Squish)
+    -- Feedback físico Mousedown
     btn.MouseButton1Down:Connect(function()
         TweenService:Create(btn, T_FAST, {Size = UDim2.new(0.95, 0, 0.95, 0)}):Play()
     end)
@@ -459,7 +459,7 @@ makeToggleRow("Efectos de Sonido", "Administra la salida de audio de la interfaz
 end)
 makeToggleRow("Interfaz Limpia", "Oculta indicadores flotantes externos", 3, false, nil)
 
--- ─── COMPONENTE EXCLUSIVO: BARRA DE SONIDO PARA LA MÚSICA  ───
+-- ─── BARRA DE SONIDO PARA LA MÚSICA  ───
 local musicRow = Instance.new("Frame")
 musicRow.Size             = UDim2.new(1, 0, 0, 68)
 musicRow.BackgroundColor3 = C.bgCard
@@ -540,7 +540,7 @@ end)
 
 
 -- ══════════════════════════════════════════════════════════════
---  [MODAL 2] OUTFIT PANEL (REDISEÑADO TRUE DARK)
+--  [MODAL 2] OUTFIT PANEL
 -- ══════════════════════════════════════════════════════════════
 local PW, PH   = 720, 580 
 local POS_HIDE = UDim2.new(0.5, -PW/2, 1.5, 0)
