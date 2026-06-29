@@ -128,6 +128,21 @@ end
 -- ══════════════════════════════════════════════════════════════
 --  ROOT GUI
 -- ══════════════════════════════════════════════════════════════
+-- ─── Blur de Lighting (efecto cristal esmerilado) ─────────────
+local Lighting   = game:GetService("Lighting")
+local blurEffect = Instance.new("BlurEffect")
+blurEffect.Size   = 0
+blurEffect.Parent = Lighting
+
+local T_BLUR = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+local function blurIn()
+    TweenService:Create(blurEffect, T_BLUR, {Size = 16}):Play()
+end
+local function blurOut()
+    TweenService:Create(blurEffect, T_BLUR, {Size = 0}):Play()
+end
+
 local GUI = Instance.new("ScreenGui")
 GUI.Name           = "InfectedMemoriesUI"
 GUI.ResetOnSpawn   = false
@@ -691,6 +706,7 @@ local activeMenu = nil
 
 local function closeAllMenus()
     if not activeMenu then return end
+    blurOut()
     
     TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 1}):Play()
     
@@ -708,6 +724,7 @@ local function openMenu(menuType, data)
     closeAllMenus()
     activeMenu = menuType
     Backdrop.Visible = true
+    blurIn()
     
     TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 0.3}):Play()
 
