@@ -151,7 +151,153 @@ GUI.IgnoreGuiInset = true
 GUI.Parent         = playerGui
 
 -- ══════════════════════════════════════════════════════════════
---  BACKDROP TRANSLÚCIDO CINEMÁTICO
+--  SISTEMA DE NOTIFICACIONES TOAST
+--  Aparecen en la esquina superior derecha, se apilan,
+--  y desaparecen solas después de unos segundos.
+-- ══════════════════════════════════════════════════════════════
+local TOAST_W       = 280
+local TOAST_H       = 56
+local TOAST_PADDING = 10
+local TOAST_SHOW_Y  = 20   -- distancia desde el top
+local toastQueue    = {}
+local TOAST_TYPES   = {
+    success = {icon = "✓", color = Color3.fromRGB(40, 185, 90)},
+    error   = {icon = "✕", color = Color3.fromRGB(196, 22, 42)},
+    info    = {icon = "i", color = Color3.fromRGB(80, 140, 220)},
+    neutral = {icon = "·", color = Color3.fromRGB(150, 150, 150)},
+}
+
+-- Contenedor de toasts (esquina superior derecha)
+local toastContainer = Instance.new("Frame")
+toastContainer.Name             = "ToastContainer"
+toastContainer.Size             = UDim2.new(0, TOAST_W, 1, 0)
+toastContainer.Position         = UDim2.new(1, -(TOAST_W + 16), 0, 0)
+toastContainer.BackgroundTransparency = 1
+toastContainer.ZIndex           = 100
+
+-- El parent se asigna después de crear GUI, lo hacemos en task.defer
+task.defer(function()
+    toastContainer.Parent = GUI
+end)
+
+local function showToast(message, toastType, duration)
+    toastType = toastType or "neutral"
+    duration  = duration  or 3
+
+    local style = TOAST_TYPES[toastType] or TOAST_TYPES.neutral
+
+    -- Calcular posición Y basada en toasts activos
+    local yOffset = TOAST_SHOW_Y
+    for _, existing in ipairs(toastQueue) do
+        if existing and existing.Parent then
+            yOffset = yOffset + TOAST_H + TOAST_PADDING
+        end
+    end
+
+    -- Frame del toast
+    local toast = Instance.new("Frame")
+    toast.Name             = "Toast"
+    toast.Size             = UDim2.new(1, 0, 0, TOAST_H)
+    toast.Position         = UDim2.new(1.2, 0, 0, yOffset) -- empieza fuera de pantalla
+    toast.BackgroundColor3 = C.bgCard
+    toast.BorderSizePixel  = 0
+    toast.ZIndex           = 101
+    uiCorner(toast, 12)
+    uiStroke(toast, C.border, 1)
+    toast.Parent = toastContainer
+
+    -- Barra de color izquierda (indica tipo)
+    local colorBar = Instance.new("Frame")
+    colorBar.Size             = UDim2.new(0, 3, 1, -16)
+    colorBar.Position         = UDim2.new(0, 8, 0, 8)
+    colorBar.BackgroundColor3 = style.color
+    colorBar.BorderSizePixel  = 0
+    uiCorner(colorBar, 2)
+    colorBar.Parent = toast
+
+    -- Ícono
+    local icoLbl = Instance.new("TextLabel")
+    icoLbl.Size             = UDim2.new(0, 28, 1, 0)
+    icoLbl.Position         = UDim2.new(0, 18, 0, 0)
+    icoLbl.BackgroundTransparency = 1
+    icoLbl.Text             = style.icon
+    icoLbl.TextColor3       = style.color
+    icoLbl.TextSize         = 16
+    icoLbl.Font             = F_BOLD
+    icoLbl.ZIndex           = 102
+    icoLbl.Parent           = toast
+
+    -- Mensaje
+    local msgLbl = Instance.new("TextLabel")
+    msgLbl.Size             = UDim2.new(1, -52, 1, 0)
+    msgLbl.Position         = UDim2.new(0, 48, 0, 0)
+    msgLbl.BackgroundTransparency = 1
+    msgLbl.Text             = message
+    msgLbl.TextColor3       = C.txtMain
+    msgLbl.TextSize         = 12
+    msgLbl.Font             = F_NORMAL
+    msgLbl.TextXAlignment   = Enum.TextXAlignment.Left
+    msgLbl.TextWrapped      = true
+    msgLbl.ZIndex           = 102
+    msgLbl.Parent           = toast
+
+    -- Barra de progreso (lifetime indicator)
+    local progressBg = Instance.new("Frame")
+    progressBg.Size             = UDim2.new(1, -16, 0, 2)
+    progressBg.Position         = UDim2.new(0, 8, 1, -6)
+    progressBg.BackgroundColor3 = C.border
+    progressBg.BorderSizePixel  = 0
+    uiCorner(progressBg, 1)
+    progressBg.Parent = toast
+
+    local progressFill = Instance.new("Frame")
+    progressFill.Size             = UDim2.new(1, 0, 1, 0)
+    progressFill.BackgroundColor3 = style.color
+    progressFill.BorderSizePixel  = 0
+    uiCorner(progressFill, 1)
+    progressFill.Parent = progressBg
+
+    -- Añadir a la cola
+    table.insert(toastQueue, toast)
+
+    local T_TOAST = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+    -- Slide in desde la derecha
+    TweenService:Create(toast, T_TOAST,
+        {Position = UDim2.new(0, 0, 0, yOffset)}):Play()
+
+    -- Animar la barra de progreso
+    TweenService:Create(progressFill,
+        TweenInfo.new(duration, Enum.EasingStyle.Linear),
+        {Size = UDim2.new(0, 0, 1, 0)}):Play()
+
+    -- Auto-dismiss
+    task.delay(duration, function()
+        if not toast or not toast.Parent then return end
+        TweenService:Create(toast, T_TOAST,
+            {Position = UDim2.new(1.2, 0, 0, yOffset),
+             BackgroundTransparency = 0.6}):Play()
+        task.delay(0.35, function()
+            -- Remover de la cola
+            for i, t in ipairs(toastQueue) do
+                if t == toast then table.remove(toastQueue, i) break end
+            end
+            toast:Destroy()
+            -- Reposicionar los toasts restantes
+            for i, remaining in ipairs(toastQueue) do
+                local newY = TOAST_SHOW_Y + (i - 1) * (TOAST_H + TOAST_PADDING)
+                TweenService:Create(remaining, T_TOAST,
+                    {Position = UDim2.new(0, 0, 0, newY)}):Play()
+            end
+        end)
+    end)
+end
+
+-- API global para usar desde cualquier parte del script
+-- Uso: showToast("Mensaje", "success" / "error" / "info" / "neutral", segundos)
+
+-- ══════════════════════════════════════════════════════════════
+--  BACKDROP TRANSLÚCIDO
 -- ══════════════════════════════════════════════════════════════
 local Backdrop = Instance.new("TextButton")
 Backdrop.Name                   = "Backdrop"
@@ -164,7 +310,7 @@ Backdrop.Visible                = false
 Backdrop.Parent                 = GUI
 
 -- ══════════════════════════════════════════════════════════════
---  HUD HORIZONTAL (DOCK INFERIOR CENTRALIZADO ESTILO APPLE)
+--  HUD HORIZONTAL DOCK INFERIOR
 -- ══════════════════════════════════════════════════════════════
 local HUD = Instance.new("Frame")
 HUD.Name                   = "HorizontalHUD"
@@ -320,6 +466,7 @@ btnReset.MouseButton1Click:Connect(function()
     task.delay(0.5, function()
         TweenService:Create(btnReset, T_MED, {BackgroundColor3 = C.bgCard}):Play()
     end)
+    showToast("Avatar reseteado", "neutral", 2)
 end)
 
 -- ══════════════════════════════════════════════════════════════
@@ -764,6 +911,7 @@ btnTryOn.MouseButton1Click:Connect(function()
     TryOnOutfit:FireServer(activeOutfitData.id)
     btnTryOn.Text = "✓ CONECTADO"
     task.delay(1.5, function() btnTryOn.Text = "PROBAR AVATAR" end)
+    showToast("Look equipado: " .. (activeOutfitData.name or "—"), "success", 3)
 end)
 
 btnBuy.MouseButton1Click:Connect(function()
@@ -772,6 +920,7 @@ btnBuy.MouseButton1Click:Connect(function()
     local pid = activeOutfitData.pants or 0
     if sid ~= 0 then BuyOutfit:FireServer(sid) end
     if pid ~= 0 then task.delay(0.5, function() BuyOutfit:FireServer(pid) end) end
+    showToast("Abriendo tienda de Roblox...", "info", 2.5)
 end)
 
 -- ══════════════════════════════════════════════════════════════
