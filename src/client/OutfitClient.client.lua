@@ -208,26 +208,28 @@ local function showToast(message, toastType, duration)
 
     -- Ícono
     local icoLbl = Instance.new("TextLabel")
-    icoLbl.Size             = UDim2.new(0, 28, 1, 0)
-    icoLbl.Position         = UDim2.new(0, 18, 0, 0)
+    icoLbl.Size             = UDim2.new(0, 32, 1, -8)
+    icoLbl.Position         = UDim2.new(0, 16, 0, 0)
     icoLbl.BackgroundTransparency = 1
     icoLbl.Text             = style.icon
     icoLbl.TextColor3       = style.color
-    icoLbl.TextSize         = 16
+    icoLbl.TextSize         = 20
     icoLbl.Font             = F_BOLD
+    icoLbl.TextYAlignment   = Enum.TextYAlignment.Center
     icoLbl.ZIndex           = 102
     icoLbl.Parent           = toast
 
     -- Mensaje
     local msgLbl = Instance.new("TextLabel")
-    msgLbl.Size             = UDim2.new(1, -52, 1, 0)
-    msgLbl.Position         = UDim2.new(0, 48, 0, 0)
+    msgLbl.Size             = UDim2.new(1, -64, 1, -8)
+    msgLbl.Position         = UDim2.new(0, 54, 0, 0)
     msgLbl.BackgroundTransparency = 1
     msgLbl.Text             = message
     msgLbl.TextColor3       = C.txtMain
-    msgLbl.TextSize         = 12
+    msgLbl.TextSize         = 14
     msgLbl.Font             = F_NORMAL
     msgLbl.TextXAlignment   = Enum.TextXAlignment.Left
+    msgLbl.TextYAlignment   = Enum.TextYAlignment.Center
     msgLbl.TextWrapped      = true
     msgLbl.ZIndex           = 102
     msgLbl.Parent           = toast
