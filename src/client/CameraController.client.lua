@@ -14,7 +14,7 @@ player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Wait()
 -- MIN: qué tan cerca puede acercarse (en studs)
 -- MAX: qué tan lejos puede alejarse (en studs)
 local MIN_ZOOM = 8
-local MAX_ZOOM = 25
+local MAX_ZOOM = 10
 
 player.CameraMinZoomDistance = MIN_ZOOM
 player.CameraMaxZoomDistance = MAX_ZOOM
