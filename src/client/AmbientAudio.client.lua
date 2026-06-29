@@ -8,12 +8,10 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 -- ─── Configuración ────────────────────────────────────────────
--- Pon aquí el Asset ID de la música que quieras de fondo.
--- Busca en Roblox "free ambient music dark" en la Toolbox
--- o usa uno de la biblioteca gratuita de Roblox.
-local AMBIENT_TRACK_ID = "rbxassetid://1843671275" -- dark ambient loop (gratuito)
-local AMBIENT_VOLUME   = 0.18  -- sutil, no invasivo
-local FADE_TIME        = 3.5   -- segundos de fade in al entrar
+-- ID verificado de la librería de Roblox (Dark Ambient Tension)
+local AMBIENT_TRACK_ID = "rbxassetid://1837841808"
+local AMBIENT_VOLUME   = 0.18   -- sutil, no invasivo
+local FADE_TIME        = 3.5    -- segundos de fade in al entrar
 
 -- ─── Crear carpeta de audio ────────────────────────────────────
 local audioFolder = SoundService:FindFirstChild("InfectedMemories_Ambient")
@@ -23,35 +21,46 @@ if not audioFolder then
     audioFolder.Parent = SoundService
 end
 
--- ─── Pista principal ──────────────────────────────────────────
-local ambientTrack = Instance.new("Sound")
-ambientTrack.Name          = "MainAmbient"
-ambientTrack.SoundId       = AMBIENT_TRACK_ID
-ambientTrack.Volume        = 0          -- empieza silenciosa
-ambientTrack.Looped        = true
-ambientTrack.RollOffMaxDistance = 10000 -- se escucha en todo el mapa
-ambientTrack.Parent        = audioFolder
+-- ─── Pista principal (Corregido para evitar el nil error) ──────
+local ambientTrack = audioFolder:FindFirstChild("MainAmbient")
+if not ambientTrack then
+    ambientTrack = Instance.new("Sound")
+    ambientTrack.Name          = "MainAmbient"
+    ambientTrack.SoundId       = AMBIENT_TRACK_ID
+    ambientTrack.Volume        = 0          -- empieza silenciosa
+    ambientTrack.Looped        = true
+    ambientTrack.RollOffMaxDistance = 10000
+    ambientTrack.Parent        = audioFolder
+end
 
 -- ─── Fade in al cargar ────────────────────────────────────────
 local function startAmbient()
     ambientTrack:Play()
+    
     TweenService:Create(
         ambientTrack,
         TweenInfo.new(FADE_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
         {Volume = AMBIENT_VOLUME}
     ):Play()
-    print("[AmbientAudio] ✅ Música ambiente iniciada.")
+    
+    print("[AmbientAudio] ✅ Música ambiente iniciada correctamente.")
 end
 
--- Esperar a que el sonido cargue antes de reproducir
-if ambientTrack.IsLoaded then
-    startAmbient()
-else
-    ambientTrack.Loaded:Connect(startAmbient)
-end
+-- Aseguramos la reproducción ignorando bloqueos de carga de Roblox
+task.spawn(function()
+    if ambientTrack.IsLoaded then
+        startAmbient()
+    else
+        ambientTrack.Loaded:Connect(startAmbient)
+        -- Salvaguarda: si el evento tarda más de 1 segundo, forzamos el Play
+        task.wait(1)
+        if not ambientTrack.IsPlaying then 
+            startAmbient() 
+        end
+    end
+end)
 
 -- ─── API pública para que OutfitClient pueda mutear ───────────
--- El toggle de "Efectos de Sonido" en Settings puede llamar esto
 _G.InfectedAudio = {
     setVolume = function(vol)
         TweenService:Create(
@@ -61,11 +70,9 @@ _G.InfectedAudio = {
         ):Play()
     end,
     mute = function()
-        TweenService:Create(ambientTrack,
-            TweenInfo.new(1), {Volume = 0}):Play()
+        TweenService:Create(ambientTrack, TweenInfo.new(1), {Volume = 0}):Play()
     end,
     unmute = function()
-        TweenService:Create(ambientTrack,
-            TweenInfo.new(1), {Volume = AMBIENT_VOLUME}):Play()
+        TweenService:Create(ambientTrack, TweenInfo.new(1), {Volume = AMBIENT_VOLUME}):Play()
     end,
 }

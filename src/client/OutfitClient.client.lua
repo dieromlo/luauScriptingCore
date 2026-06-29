@@ -611,6 +611,14 @@ makeToggleRow("Ocultar Jugadores", "Incrementa FPS haciendo invisibles a otros a
 end)
 makeToggleRow("Efectos de Sonido", "Administra la salida de audio de la interfaz", 2, true, function(state)
     sonidosActivos = state
+    -- Controla la música ambiente del script AmbientAudio
+    if _G.InfectedAudio then
+        if state then
+            _G.InfectedAudio.unmute()
+        else
+            _G.InfectedAudio.mute()
+        end
+    end
 end)
 makeToggleRow("Interfaz Limpia", "Oculta indicadores flotantes externos", 3, false, nil)
 
