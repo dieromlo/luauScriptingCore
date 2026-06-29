@@ -7,21 +7,18 @@
 local Players = game:GetService("Players")
 local player  = Players.LocalPlayer
 
--- Esperar a que el jugador exista
-player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Wait()
-
 -- ─── Límites de zoom ──────────────────────────────────────────
 -- MIN: qué tan cerca puede acercarse (en studs)
 -- MAX: qué tan lejos puede alejarse (en studs)
-local MIN_ZOOM = 8
-local MAX_ZOOM = 10
+local MIN_ZOOM = 5
+local MAX_ZOOM = 20
 
 player.CameraMinZoomDistance = MIN_ZOOM
 player.CameraMaxZoomDistance = MAX_ZOOM
 
--- Mantener los límites si el jugador respawnea
+-- Mantener los límites si el jugador se resetea 
 player.CharacterAdded:Connect(function()
-    task.wait() -- un frame para que Roblox no los resetee
+    task.wait()
     player.CameraMinZoomDistance = MIN_ZOOM
     player.CameraMaxZoomDistance = MAX_ZOOM
 end)
