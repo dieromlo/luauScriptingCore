@@ -206,15 +206,6 @@ local function showToast(message, toastType, duration)
     uiStroke(toast, C.border, 1)
     toast.Parent = toastContainer
 
-    -- Barra de color izquierda (indica tipo)
-    local colorBar = Instance.new("Frame")
-    colorBar.Size             = UDim2.new(0, 3, 1, -16)
-    colorBar.Position         = UDim2.new(0, 8, 0, 8)
-    colorBar.BackgroundColor3 = style.color
-    colorBar.BorderSizePixel  = 0
-    uiCorner(colorBar, 2)
-    colorBar.Parent = toast
-
     -- Ícono
     local icoLbl = Instance.new("TextLabel")
     icoLbl.Size             = UDim2.new(0, 28, 1, 0)
