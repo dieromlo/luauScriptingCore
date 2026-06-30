@@ -9,7 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService     = game:GetService("TweenService")
 local SoundService     = game:GetService("SoundService")
 
-local player    = Players.LocalPlayer   
+local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- Apagar el leaderboard default
@@ -17,7 +17,7 @@ pcall(function()
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 end)
 
--- ─── Tokens (Sincronizados con OutfitClient) ───────────
+-- ─── Tokens (Sincronizados con OutfitClient: True Dark) ───────────
 local C = {
     bgBase  = Color3.fromRGB(10, 10, 10),     -- Negro Puro
     bgRow   = Color3.fromRGB(22, 22, 22),     -- Gris Carbón
@@ -50,7 +50,6 @@ local function getOrCreateSound(name, id, vol, pitch)
     return s
 end
 
--- Sonido suave para abrir/cerrar el panel
 local sndToggle = getOrCreateSound("ScoreboardToggle", "6895079853", 0.4, 0.85)
 
 -- ─── Helpers ───────────────────────────────────────────────────
@@ -74,10 +73,11 @@ GUI.ResetOnSpawn   = false
 GUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 GUI.Parent         = playerGui
 
--- Ajuste de tamaño: un poco más pequeño a lo alto
-local PANEL_W, PANEL_H = 280, 340
+-- Ajuste de tamaño: Más ancho (espacio para futuras stats) y más corto (para pocos jugadores)
+local PANEL_W, PANEL_H = 420, 240
 local HIDE_POS = UDim2.new(1, 20, 0.5, -PANEL_H/2)
-local SHOW_POS = UDim2.new(1, -(PANEL_W + 16), 0.5, -PANEL_H/2)
+-- Se aumenta el margen derecho a 24 para que entre un poco más hacia el centro
+local SHOW_POS = UDim2.new(1, -(PANEL_W + 24), 0.5, -PANEL_H/2)
 
 local Panel = Instance.new("Frame")
 Panel.Size             = UDim2.new(0, PANEL_W, 0, PANEL_H)
@@ -161,6 +161,9 @@ local function addRow(p)
     nameLbl.TextTruncate     = Enum.TextTruncate.AtEnd
     nameLbl.Parent           = row
 
+    -- El espacio a la derecha de nameLbl queda vacío y listo para agregar TextLabels 
+    -- adicionales en el futuro (Robux, Outfits, etc.)
+
     rows[p.UserId] = row
 end
 
@@ -191,5 +194,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         setOpen(not isOpen)
     end
 end)
-
-print("[CustomScoreboard] ✅ Scoreboard minimalista sincronizado y listo.")
