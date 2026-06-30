@@ -620,7 +620,17 @@ makeToggleRow("Efectos de Sonido", "Administra la salida de audio de la interfaz
         end
     end
 end)
-makeToggleRow("Interfaz Limpia", "Oculta indicadores flotantes externos", 3, false, nil)
+makeToggleRow("Ocultar nombres", "Oculta los tags sobre los jugadores", 3, false,
+    function(active)
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character then
+                local head = p.Character:FindFirstChild("Head")
+                local tag  = head and head:FindFirstChild("NameTagGui")
+                if tag then tag.Enabled = not active end
+            end
+        end
+    end
+)
 
 -- ─── BARRA DE SONIDO PARA LA MÚSICA  ───
 local musicRow = Instance.new("Frame")
