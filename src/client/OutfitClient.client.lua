@@ -2,7 +2,6 @@
 --  OutfitClient.client.lua
 --  LocalScript | StarterPlayerScripts
 --  UI Premium: Horizontal Dock HUD + Adaptive Menus
---  Estética: Minimalist Dark Glass (Upscaled +40%)
 -- ============================================================
 
 print("[OutfitClient] 🔵 Script Pro-Grade iniciado")
