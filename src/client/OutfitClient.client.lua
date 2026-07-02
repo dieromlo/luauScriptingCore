@@ -12,6 +12,7 @@ local TweenService      = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService  = game:GetService("UserInputService")
 local SoundService      = game:GetService("SoundService")
+local RunService        = game:GetService("RunService")
 
 local player    = Players.LocalPlayer
 local playerGui = player.PlayerGui
@@ -24,6 +25,10 @@ local remoteFolder = ReplicatedStorage
 local TryOnOutfit = remoteFolder:WaitForChild("TryOnOutfit", 15)
 local ResetAvatar = remoteFolder:WaitForChild("ResetAvatar",  15)
 local BuyOutfit   = remoteFolder:WaitForChild("BuyOutfit",    15)
+local RemoveItem  = remoteFolder:WaitForChild("RemoveItem",   15)
+if not RemoveItem then
+    warn("[OutfitClient] ⚠️ RemoveItem no encontrado. Crea el init.meta.json correspondiente.")
+end
 
 if not TryOnOutfit then error("[OutfitClient] ❌ TryOnOutfit no encontrado") end
 if not ResetAvatar then error("[OutfitClient] ❌ ResetAvatar no encontrado") end
@@ -300,6 +305,43 @@ Backdrop.Text                   = ""
 Backdrop.ZIndex                 = 9
 Backdrop.Visible                = false
 Backdrop.Parent                 = GUI
+
+-- ══════════════════════════════════════════════════════════════
+--  BOTÓN CUSTOMIZAR — medio izquierda de pantalla
+-- ══════════════════════════════════════════════════════════════
+local btnCustomize = Instance.new("TextButton")
+btnCustomize.Name             = "BtnCustomize"
+btnCustomize.Size             = UDim2.new(0, 132, 0, 46)
+btnCustomize.Position         = UDim2.new(0, 20, 0.5, -23)
+btnCustomize.BackgroundColor3 = C.bgCard
+btnCustomize.Text             = "CUSTOMIZAR"
+btnCustomize.TextColor3       = C.txtSub
+btnCustomize.Font             = F_BOLD
+btnCustomize.TextSize         = 12
+btnCustomize.BorderSizePixel  = 0
+btnCustomize.ZIndex           = 30
+uiCorner(btnCustomize, 12)
+local customizeStroke = uiStroke(btnCustomize, C.border, 1.2)
+btnCustomize.Parent = GUI
+
+btnCustomize.MouseEnter:Connect(function()
+    playHover()
+    TweenService:Create(btnCustomize, T_FAST,
+        {BackgroundColor3 = C.bgBtnHover, TextColor3 = C.txtMain}):Play()
+    TweenService:Create(customizeStroke, T_FAST, {Color = C.borderHot}):Play()
+end)
+btnCustomize.MouseLeave:Connect(function()
+    TweenService:Create(btnCustomize, T_FAST,
+        {BackgroundColor3 = C.bgCard, TextColor3 = C.txtSub}):Play()
+    TweenService:Create(customizeStroke, T_FAST, {Color = C.border}):Play()
+end)
+btnCustomize.MouseButton1Down:Connect(function()
+    TweenService:Create(btnCustomize, T_FAST, {Size = UDim2.new(0, 126, 0, 44)}):Play()
+end)
+btnCustomize.MouseButton1Up:Connect(function()
+    playClick()
+    TweenService:Create(btnCustomize, T_FAST, {Size = UDim2.new(0, 132, 0, 46)}):Play()
+end)
 
 -- ══════════════════════════════════════════════════════════════
 --  HUD HORIZONTAL DOCK INFERIOR
@@ -855,24 +897,505 @@ end
 setButtonInteractions(btnTryOn, false)
 setButtonInteractions(btnBuy, true)
 
+-- ══════════════════════════════════════════════════════════════
+--  [MODAL 3] CUSTOMIZE PANEL
+--  Panel grande, filas horizontales, viewport con encuadre
+--  automático y controles de cámara minimalistas.
+-- ══════════════════════════════════════════════════════════════
+local CW, CH        = 1120, 720
+local CUSTOM_HIDE    = UDim2.new(0.5, -CW/2, 1.5, 0)
+local CUSTOM_SHOW    = UDim2.new(0.5, -CW/2, 0.5, -CH/2)
+
+local CustomizePanel = Instance.new("Frame")
+CustomizePanel.Name             = "CustomizePanel"
+CustomizePanel.Size             = UDim2.new(0, CW, 0, CH)
+CustomizePanel.Position         = CUSTOM_HIDE
+CustomizePanel.BackgroundColor3 = C.bgBase
+CustomizePanel.BorderSizePixel  = 0
+CustomizePanel.ZIndex           = 10
+uiCorner(CustomizePanel, 20)
+uiStroke(CustomizePanel, C.border, 1.5)
+CustomizePanel.Parent = GUI
+
+local custTitle = Instance.new("TextLabel")
+custTitle.Size             = UDim2.new(1, -100, 0, 40)
+custTitle.Position         = UDim2.new(0, 32, 0, 28)
+custTitle.BackgroundTransparency = 1
+custTitle.TextColor3       = C.txtMain
+custTitle.TextSize         = 30
+custTitle.Font             = F_BOLD
+custTitle.TextXAlignment   = Enum.TextXAlignment.Left
+custTitle.Text             = "Personaliza tu Look"
+custTitle.ZIndex           = 11
+custTitle.Parent           = CustomizePanel
+
+local custSubtitle = Instance.new("TextLabel")
+custSubtitle.Size             = UDim2.new(1, -100, 0, 20)
+custSubtitle.Position         = UDim2.new(0, 32, 0, 72)
+custSubtitle.BackgroundTransparency = 1
+custSubtitle.TextColor3       = C.txtSub
+custSubtitle.TextSize         = 14
+custSubtitle.Font             = F_NORMAL
+custSubtitle.TextXAlignment   = Enum.TextXAlignment.Left
+custSubtitle.Text             = "Gestiona lo que llevas puesto ahora mismo."
+custSubtitle.ZIndex           = 11
+custSubtitle.Parent           = CustomizePanel
+
+local btnCustClose = Instance.new("ImageButton")
+btnCustClose.Size             = UDim2.new(0, 36, 0, 36)
+btnCustClose.Position         = UDim2.new(1, -54, 0, 26)
+btnCustClose.BackgroundColor3 = C.bgBtn
+btnCustClose.Image            = ICONS.Close
+btnCustClose.ImageColor3      = C.txtSub
+btnCustClose.BorderSizePixel  = 0
+btnCustClose.ZIndex           = 12
+uiCorner(btnCustClose, 10)
+btnCustClose.Parent = CustomizePanel
+btnCustClose.MouseEnter:Connect(function()
+    TweenService:Create(btnCustClose, T_FAST, {BackgroundColor3 = C.bgBtnHover, ImageColor3 = C.accent}):Play()
+end)
+btnCustClose.MouseLeave:Connect(function()
+    TweenService:Create(btnCustClose, T_FAST, {BackgroundColor3 = C.bgBtn, ImageColor3 = C.txtSub}):Play()
+end)
+
+local custDivider = Instance.new("Frame")
+custDivider.Size             = UDim2.new(1, -64, 0, 1)
+custDivider.Position         = UDim2.new(0, 32, 0, 104)
+custDivider.BackgroundColor3 = C.border
+custDivider.BorderSizePixel  = 0
+custDivider.ZIndex           = 11
+custDivider.Parent           = CustomizePanel
+
+-- ─── VIEWPORT 3D (izquierda) ────────────────────────────────────
+local previewViewport = Instance.new("ViewportFrame")
+previewViewport.Size             = UDim2.new(0, 420, 0, 560)
+previewViewport.Position         = UDim2.new(0, 32, 0, 124)
+previewViewport.BackgroundColor3 = C.bgCard
+previewViewport.BorderSizePixel  = 0
+previewViewport.ZIndex           = 11
+uiCorner(previewViewport, 18)
+uiStroke(previewViewport, C.border)
+previewViewport.Parent = CustomizePanel
+
+-- El WorldModel es necesario para que los accesorios se rendericen bien
+local previewWorldModel = Instance.new("WorldModel")
+previewWorldModel.Parent = previewViewport
+
+local previewCamera = Instance.new("Camera")
+previewCamera.FieldOfView = 45  -- más bajo = look más "zoomed/cinemático"
+previewCamera.Parent = previewViewport
+previewViewport.CurrentCamera = previewCamera
+
+local previewHint = Instance.new("TextLabel")
+previewHint.Size             = UDim2.new(1, -20, 0, 18)
+previewHint.Position         = UDim2.new(0, 10, 0, 10)
+previewHint.BackgroundTransparency = 1
+previewHint.TextColor3       = C.txtMuted
+previewHint.TextSize         = 11
+previewHint.Font             = F_NORMAL
+previewHint.TextXAlignment   = Enum.TextXAlignment.Left
+previewHint.Text             = "↺  Arrastra para rotar"
+previewHint.ZIndex           = 13
+previewHint.Parent           = previewViewport
+
+-- Controles de cámara (esquina inferior derecha del viewport)
+-- 4 controles: zoom in, zoom out, reset, y auto-rotar (vi este último
+-- en tu captura de referencia y lo agregué también)
+local viewportControls = Instance.new("Frame")
+viewportControls.Size             = UDim2.new(0, 140, 0, 32)
+viewportControls.AnchorPoint      = Vector2.new(1, 1)
+viewportControls.Position         = UDim2.new(1, -12, 1, -12)
+viewportControls.BackgroundColor3 = C.bgBase
+viewportControls.BackgroundTransparency = 0.1
+viewportControls.BorderSizePixel  = 0
+viewportControls.ZIndex           = 13
+uiCorner(viewportControls, 9)
+uiStroke(viewportControls, C.border)
+viewportControls.Parent = previewViewport
+
+local vcLayout = Instance.new("UIListLayout")
+vcLayout.FillDirection       = Enum.FillDirection.Horizontal
+vcLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+vcLayout.VerticalAlignment   = Enum.VerticalAlignment.Center
+vcLayout.Padding             = UDim.new(0, 6)
+vcLayout.Parent              = viewportControls
+
+local function makeMiniBtn(glyph, order)
+    local b = Instance.new("TextButton")
+    b.Size             = UDim2.new(0, 26, 0, 26)
+    b.BackgroundColor3 = C.bgBtn
+    b.Text             = glyph
+    b.TextColor3       = C.txtSub
+    b.Font             = F_BOLD
+    b.TextSize         = 14
+    b.BorderSizePixel  = 0
+    b.LayoutOrder      = order
+    b.ZIndex           = 14
+    uiCorner(b, 8)
+    b.Parent = viewportControls
+
+    b.MouseEnter:Connect(function()
+        if not b:GetAttribute("Active") then
+            TweenService:Create(b, T_FAST, {BackgroundColor3 = C.bgBtnHover, TextColor3 = C.txtMain}):Play()
+        end
+    end)
+    b.MouseLeave:Connect(function()
+        if not b:GetAttribute("Active") then
+            TweenService:Create(b, T_FAST, {BackgroundColor3 = C.bgBtn, TextColor3 = C.txtSub}):Play()
+        end
+    end)
+    return b
+end
+
+local btnZoomIn   = makeMiniBtn("+", 1)
+local btnZoomOut  = makeMiniBtn("–", 2)
+local btnCamReset = makeMiniBtn("⟲", 3)
+local btnAutoRot  = makeMiniBtn("⟳", 4)
+
+-- ─── LISTA DE PRENDAS (derecha) ──────────────────────────────────
+local gridContainer = Instance.new("ScrollingFrame")
+gridContainer.Size                   = UDim2.new(0, 612, 0, 560)
+gridContainer.Position               = UDim2.new(0, 476, 0, 124)
+gridContainer.BackgroundTransparency = 1
+gridContainer.BorderSizePixel        = 0
+gridContainer.ScrollBarThickness     = 4
+gridContainer.ScrollBarImageColor3   = C.txtMuted
+gridContainer.CanvasSize             = UDim2.new(0, 0, 0, 0)
+gridContainer.AutomaticCanvasSize    = Enum.AutomaticSize.Y  -- se actualiza solo
+gridContainer.ZIndex                 = 11
+gridContainer.Parent                 = CustomizePanel
+
+local gridPadding = Instance.new("UIPadding")
+gridPadding.PaddingRight  = UDim.new(0, 12)
+gridPadding.PaddingBottom = UDim.new(0, 4)
+gridPadding.Parent = gridContainer
+
+local gridListLayout = Instance.new("UIListLayout")
+gridListLayout.FillDirection = Enum.FillDirection.Vertical
+gridListLayout.SortOrder     = Enum.SortOrder.LayoutOrder
+gridListLayout.Padding       = UDim.new(0, 12)  -- más espacio entre tarjetas
+gridListLayout.Parent        = gridContainer
+
+local emptyStateLbl = Instance.new("TextLabel")
+emptyStateLbl.Size             = UDim2.new(1, 0, 0, 60)
+emptyStateLbl.BackgroundTransparency = 1
+emptyStateLbl.TextColor3       = C.txtMuted
+emptyStateLbl.TextSize         = 14
+emptyStateLbl.Font             = F_NORMAL
+emptyStateLbl.Text             = "No hay prendas equipadas"
+emptyStateLbl.Visible          = false
+emptyStateLbl.ZIndex           = 11
+emptyStateLbl.Parent           = gridContainer
+
+-- ─── Escanear prendas equipadas ─────────────────────────────────
+local equippedItems = {}
+
+local function scanEquippedItems()
+    equippedItems = {}
+    local char = player.Character
+    if not char then return end
+
+    local shirt = char:FindFirstChildOfClass("Shirt")
+    if shirt then
+        table.insert(equippedItems, {
+            itemType = "Shirt", name = "Camisa",
+            assetId  = shirt.ShirtTemplate:match("%d+"),
+            owned    = not shirt:GetAttribute("FromOutfit"),
+        })
+    end
+
+    local pants = char:FindFirstChildOfClass("Pants")
+    if pants then
+        table.insert(equippedItems, {
+            itemType = "Pants", name = "Pantalón",
+            assetId  = pants.PantsTemplate:match("%d+"),
+            owned    = not pants:GetAttribute("FromOutfit"),
+        })
+    end
+
+    for _, child in ipairs(char:GetChildren()) do
+        if child:IsA("Accessory") then
+            local handle = child:FindFirstChild("Handle")
+            local mesh   = handle and (handle:FindFirstChildOfClass("SpecialMesh") or handle:FindFirstChildOfClass("MeshPart"))
+            local assetId = mesh and mesh.MeshId and mesh.MeshId:match("%d+")  -- simplificado
+            table.insert(equippedItems, {
+                itemType = "Accessory", name = child.Name,
+                assetId  = assetId,
+                owned    = not child:GetAttribute("FromOutfit"),
+            })
+        end
+    end
+end
+
+-- ─── Tarjeta en forma de fila horizontal ────────────────────────
+local function buildItemCard(item)
+    local card = Instance.new("Frame")
+    card.Size             = UDim2.new(1, 0, 0, 88)
+    card.BackgroundColor3 = C.bgCard
+    card.BorderSizePixel  = 0
+    card.ZIndex           = 12
+    uiCorner(card, 12)
+    local cardStroke = uiStroke(card, C.border)
+    card.Parent = gridContainer
+
+    local img = Instance.new("ImageLabel")
+    img.Size             = UDim2.new(0, 70, 0, 70)
+    img.Position         = UDim2.new(0, 9, 0, 9)
+    img.BackgroundColor3 = C.bgBase
+    img.ScaleType        = Enum.ScaleType.Fit
+    img.Image             = item.assetId and ("rbxthumb://type=Asset&id=" .. item.assetId .. "&w=150&h=150") or ""
+    img.ZIndex             = 13
+    uiCorner(img, 9)
+    img.Parent = card
+
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size             = UDim2.new(1, -220, 0, 22)
+    nameLbl.Position         = UDim2.new(0, 90, 0, 14)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.TextColor3       = C.txtMain
+    nameLbl.Font             = F_BOLD
+    nameLbl.TextSize         = 16
+    nameLbl.TextXAlignment   = Enum.TextXAlignment.Left
+    nameLbl.TextTruncate     = Enum.TextTruncate.AtEnd
+    nameLbl.Text             = item.name
+    nameLbl.ZIndex           = 13
+    nameLbl.Parent           = card
+
+    local statusLbl = Instance.new("TextLabel")
+    statusLbl.Size             = UDim2.new(1, -220, 0, 16)
+    statusLbl.Position         = UDim2.new(0, 90, 0, 40)
+    statusLbl.BackgroundTransparency = 1
+    statusLbl.TextColor3       = C.txtSub
+    statusLbl.Font             = F_NORMAL
+    statusLbl.TextSize         = 11
+    statusLbl.TextXAlignment   = Enum.TextXAlignment.Left
+    statusLbl.Text             = item.owned and "En inventario" or "Vista previa"
+    statusLbl.ZIndex           = 13
+    statusLbl.Parent           = card
+
+    -- Un solo botón, cambia según el estado del ítem
+    local actionBtn = Instance.new("TextButton")
+    actionBtn.Size             = UDim2.new(0, 120, 0, 38)
+    actionBtn.Position         = UDim2.new(1, -132, 0.5, -19)
+    actionBtn.BackgroundColor3 = item.owned and C.bgBtn or C.accent
+    actionBtn.Text             = item.owned and "QUITAR" or "COMPRAR"
+    actionBtn.TextColor3       = item.owned and C.txtMain or C.bgBase
+    actionBtn.Font             = F_BOLD
+    actionBtn.TextSize         = 12
+    actionBtn.BorderSizePixel  = 0
+    actionBtn.ZIndex           = 13
+    uiCorner(actionBtn, 9)
+    if item.owned then uiStroke(actionBtn, C.border) end
+    actionBtn.Parent = card
+
+    card.MouseEnter:Connect(function()
+        TweenService:Create(card, T_FAST, {BackgroundColor3 = C.bgBtnHover}):Play()
+        TweenService:Create(cardStroke, T_FAST, {Color = C.borderHot}):Play()
+    end)
+    card.MouseLeave:Connect(function()
+        TweenService:Create(card, T_FAST, {BackgroundColor3 = C.bgCard}):Play()
+        TweenService:Create(cardStroke, T_FAST, {Color = C.border}):Play()
+    end)
+
+    actionBtn.MouseEnter:Connect(function()
+        TweenService:Create(actionBtn, T_FAST,
+            {BackgroundColor3 = item.owned and C.bgBtnHover or C.accentHover}):Play()
+    end)
+    actionBtn.MouseLeave:Connect(function()
+        TweenService:Create(actionBtn, T_FAST,
+            {BackgroundColor3 = item.owned and C.bgBtn or C.accent}):Play()
+    end)
+
+    actionBtn.MouseButton1Click:Connect(function()
+        playClick()
+        if item.owned then
+            if RemoveItem then RemoveItem:FireServer(item.itemType, item.name) end
+            showToast(item.name .. " quitado", "neutral", 2)
+        else
+            if item.assetId and BuyOutfit then
+                BuyOutfit:FireServer(tonumber(item.assetId))
+                showToast("Abriendo tienda de Roblox...", "info", 2.5)
+            end
+        end
+    end)
+
+    return card
+end
+
+local function refreshItemsGrid()
+    scanEquippedItems()
+    for _, c in ipairs(gridContainer:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    emptyStateLbl.Visible = (#equippedItems == 0)
+    for _, item in ipairs(equippedItems) do
+        buildItemCard(item)
+    end
+end
+
+-- ─── Preview 3D: encuadre automático + zoom/reset/auto-rotar ───
+local previewModel        = nil
+local previewAngle        = 0
+local previewBaseDistance = 6
+local previewLookY        = 0
+local zoomMultiplier      = 1
+local autoRotateEnabled   = true
+local isDraggingPreview   = false
+local dragStartX          = 0
+local dragStartAngle      = 0
+
+local PREVIEW_ROT_SPEED = 0.3
+local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.55, 1.8, 0.12
+local FIT_PADDING = 1.25  -- > 1 deja aire alrededor del cuerpo completo
+
+-- Calcula la distancia ideal de cámara según el tamaño REAL del avatar,
+-- así siempre se ve completo sin importar la altura/escala del personaje
+local function fitCameraToModel()
+    if not previewModel then return end
+    local ok, cf, size = pcall(function() return previewModel:GetBoundingBox() end)
+    if not ok or not size then return end
+    local fovRad = math.rad(previewCamera.FieldOfView)
+    previewBaseDistance = (size.Y / 2) / math.tan(fovRad / 2) * FIT_PADDING
+    previewLookY = cf.Position.Y
+end
+
+local function loadPreviewCharacter()
+    if previewModel then previewModel:Destroy() end
+    local char = player.Character
+    if not char then return end
+
+    local originalArchivable = char.Archivable
+    char.Archivable = true
+    local clone = char:Clone()
+    char.Archivable = originalArchivable
+    if not clone then return end
+
+    for _, d in ipairs(clone:GetDescendants()) do
+        if d:IsA("Script") or d:IsA("LocalScript") then
+            d:Destroy()
+        elseif d:IsA("BasePart") then
+            d.Anchored   = true
+            d.CanCollide = false
+        end
+    end
+
+    clone.Parent = previewWorldModel
+    previewModel = clone
+
+    zoomMultiplier = 1
+    fitCameraToModel()
+end
+
+RunService.RenderStepped:Connect(function(dt)
+    if not previewModel or not CustomizePanel.Visible then return end
+    local root = previewModel:FindFirstChild("HumanoidRootPart") or previewModel.PrimaryPart
+    if not root then return end
+
+    if autoRotateEnabled and not isDraggingPreview then
+        previewAngle += dt * PREVIEW_ROT_SPEED
+    end
+
+    local distance   = previewBaseDistance * zoomMultiplier
+    local lookCenter = Vector3.new(root.Position.X, previewLookY, root.Position.Z)
+    local camX       = root.Position.X + math.sin(previewAngle) * distance
+    local camZ       = root.Position.Z + math.cos(previewAngle) * distance
+
+    previewCamera.CFrame = CFrame.new(Vector3.new(camX, previewLookY, camZ), lookCenter)
+end)
+
+previewViewport.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        isDraggingPreview = true
+        dragStartX        = input.Position.X
+        dragStartAngle    = previewAngle
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if isDraggingPreview and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position.X - dragStartX
+        previewAngle = dragStartAngle - delta * 0.01
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        isDraggingPreview = false
+    end
+end)
+
+btnZoomIn.MouseButton1Click:Connect(function()
+    playClick()
+    zoomMultiplier = math.clamp(zoomMultiplier - ZOOM_STEP, ZOOM_MIN, ZOOM_MAX)
+end)
+btnZoomOut.MouseButton1Click:Connect(function()
+    playClick()
+    zoomMultiplier = math.clamp(zoomMultiplier + ZOOM_STEP, ZOOM_MIN, ZOOM_MAX)
+end)
+btnCamReset.MouseButton1Click:Connect(function()
+    playClick()
+    zoomMultiplier = 1
+    previewAngle   = 0
+end)
+
+local function refreshAutoRotButton()
+    btnAutoRot:SetAttribute("Active", autoRotateEnabled)
+    TweenService:Create(btnAutoRot, T_FAST, {
+        BackgroundColor3 = autoRotateEnabled and C.accent or C.bgBtn,
+        TextColor3       = autoRotateEnabled and C.bgBase or C.txtSub,
+    }):Play()
+end
+btnAutoRot.MouseButton1Click:Connect(function()
+    playClick()
+    autoRotateEnabled = not autoRotateEnabled
+    refreshAutoRotButton()
+end)
+refreshAutoRotButton()
+
+-- ─── Detección en tiempo real de cambios en el character ───────
+local function watchCharacterForCustomize(character)
+    character.ChildAdded:Connect(function(child)
+        if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
+            task.wait(0.1)
+            if activeMenu == "Customize" then refreshItemsGrid() end
+        end
+    end)
+    character.ChildRemoved:Connect(function(child)
+        if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
+            if activeMenu == "Customize" then refreshItemsGrid() end
+        end
+    end)
+end
+
+if player.Character then watchCharacterForCustomize(player.Character) end
+player.CharacterAdded:Connect(function(char)
+    watchCharacterForCustomize(char)
+    task.wait(0.5)
+    if activeMenu == "Customize" then loadPreviewCharacter() end
+end)
 
 -- ══════════════════════════════════════════════════════════════
 --  CONTROL INTERACTIVO GLOBAL (MODALES)
+--  Única fuente de verdad — antes había 3 copias de este sistema
 -- ══════════════════════════════════════════════════════════════
 local activeMenu = nil
 
 local function closeAllMenus()
     if not activeMenu then return end
     blurOut()
-    
     TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 1}):Play()
-    
+
     if activeMenu == "Settings" then
         TweenService:Create(SetPanel, T_SLOW, {Position = SET_HIDE}):Play()
     elseif activeMenu == "Outfit" then
         TweenService:Create(Panel, T_SLOW, {Position = POS_HIDE}):Play()
+    elseif activeMenu == "Customize" then
+        TweenService:Create(CustomizePanel, T_SLOW, {Position = CUSTOM_HIDE}):Play()
     end
-    
+
     task.delay(0.4, function() Backdrop.Visible = false end)
     activeMenu = nil
 end
@@ -882,40 +1405,53 @@ local function openMenu(menuType, data)
     activeMenu = menuType
     Backdrop.Visible = true
     blurIn()
-    
     TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 0.3}):Play()
 
     if menuType == "Settings" then
         TweenService:Create(SetPanel, T_MED, {Position = SET_SHOW}):Play()
+
     elseif menuType == "Outfit" and data then
         lblName.Text = data.name or "Look Desconocido"
         local sid = data.shirt or 0
         local pid = data.pants or 0
-        shirtImg.Image = sid ~= 0 and ("rbxthumb://type=Asset&id=" .. sid .. "&w=150&h=150") or ""
+        shirtImg.Image  = sid ~= 0 and ("rbxthumb://type=Asset&id=" .. sid .. "&w=150&h=150") or ""
         shirtIdLbl.Text = sid ~= 0 and ("ID: " .. sid) or "Vacante"
-        pantsImg.Image = pid ~= 0 and ("rbxthumb://type=Asset&id=" .. pid .. "&w=150&h=150") or ""
+        pantsImg.Image  = pid ~= 0 and ("rbxthumb://type=Asset&id=" .. pid .. "&w=150&h=150") or ""
         pantsIdLbl.Text = pid ~= 0 and ("ID: " .. pid) or "Vacante"
-        
         TweenService:Create(Panel, T_MED, {Position = POS_SHOW}):Play()
+
+    elseif menuType == "Customize" then
+        loadPreviewCharacter()
+        refreshItemsGrid()
+        TweenService:Create(CustomizePanel, T_MED, {Position = CUSTOM_SHOW}):Play()
     end
 end
 
--- Asignación de Triggers de Modales
+-- Aperturas
 btnSettings.MouseButton1Click:Connect(function()
     if activeMenu == "Settings" then closeAllMenus() else openMenu("Settings") end
 end)
+btnCustomize.MouseButton1Click:Connect(function()
+    if activeMenu == "Customize" then closeAllMenus() else openMenu("Customize") end
+end)
 
+-- Cierres
 btnSetClose.MouseButton1Click:Connect(closeAllMenus)
 btnClose.MouseButton1Click:Connect(closeAllMenus)
-Backdrop.MouseButton1Click:Connect(closeAllMenus)
+btnCustClose.MouseButton1Click:Connect(closeAllMenus)
+
+-- Nota: el click en el Backdrop NO cierra los menús (tu decisión original).
+-- Si algún día lo quieres de vuelta, la única línea que necesitas es:
+-- Backdrop.MouseButton1Click:Connect(closeAllMenus)
 
 UserInputService.InputBegan:Connect(function(inp, gp)
     if gp then return end
     if inp.KeyCode == Enum.KeyCode.Escape then closeAllMenus() end
 end)
 
--- Conexiones lógicas de red (Vestir/Comprar)
+-- ─── Vestir / Comprar (panel del maniquí) ───────────────────────
 local activeOutfitData = nil
+
 btnTryOn.MouseButton1Click:Connect(function()
     if not activeOutfitData then return end
     TryOnOutfit:FireServer(activeOutfitData.id)
@@ -933,9 +1469,7 @@ btnBuy.MouseButton1Click:Connect(function()
     showToast("Abriendo tienda de Roblox...", "info", 2.5)
 end)
 
--- ══════════════════════════════════════════════════════════════
---  [4] MANIPULACIÓN DEL ENTORNO (PROXIMITY PROMPTS - PRESERVADO AL 100%)
--- ══════════════════════════════════════════════════════════════
+-- ─── Proximity Prompts de los maniquíes ─────────────────────────
 local function connectMannequin(mannequin)
     if not mannequin:IsA("Model") then return end
     local root = mannequin.PrimaryPart or mannequin:FindFirstChild("HumanoidRootPart")
@@ -949,7 +1483,7 @@ local function connectMannequin(mannequin)
             name        = mannequin:GetAttribute("OutfitName"),
             description = mannequin:GetAttribute("OutfitDescription"),
             shirt       = mannequin:GetAttribute("ShirtId"),
-            pants       = mannequin:GetAttribute("PantsId")
+            pants       = mannequin:GetAttribute("PantsId"),
         }
         openMenu("Outfit", activeOutfitData)
     end)

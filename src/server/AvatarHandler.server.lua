@@ -69,11 +69,13 @@ TryOnOutfit.OnServerEvent:Connect(function(player, outfitId)
     if sid ~= 0 then
         local shirt = Instance.new("Shirt")
         shirt.ShirtTemplate = "rbxassetid://" .. tostring(sid)
+        shirt:SetAttribute("FromOutfit", true)
         shirt.Parent = char
     end
     if pid ~= 0 then
         local pants = Instance.new("Pants")
         pants.PantsTemplate = "rbxassetid://" .. tostring(pid)
+        pants:SetAttribute("FromOutfit", true)
         pants.Parent = char
     end
 
@@ -95,6 +97,26 @@ ResetAvatar.OnServerEvent:Connect(function(player)
         -- Fallback: solo borrar la ropa
         for _, child in ipairs(char:GetChildren()) do
             if child:IsA("Shirt") or child:IsA("Pants") then child:Destroy() end
+        end
+    end
+end)
+
+local RemoveItem = RemoteEvents:WaitForChild("RemoveItem", 10)
+
+RemoveItem.OnServerEvent:Connect(function(player, itemType, itemName)
+    local char = player.Character
+    if not char then return end
+
+    if itemType == "Shirt" or itemType == "Pants" then
+        for _, child in ipairs(char:GetChildren()) do
+            if child:IsA(itemType) then 
+                child:Destroy() 
+            end
+        end
+    elseif itemType == "Accessory" and itemName then
+        local acc = char:FindFirstChild(itemName)
+        if acc and acc:IsA("Accessory") then 
+            acc:Destroy() 
         end
     end
 end)
