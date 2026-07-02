@@ -9,7 +9,7 @@ local TweenService = game:GetService("TweenService")
 
 -- ─── Configuración ────────────────────────────────────────────
 -- ID verificado de la librería de Roblox (Dark Ambient Tension)
-local AMBIENT_TRACK_ID = "rbxassetid://1837841808"
+local AMBIENT_TRACK_ID = "rbxassetid://9112795583"
 local AMBIENT_VOLUME   = 0.18   -- sutil, no invasivo
 local FADE_TIME        = 3.5    -- segundos de fade in al entrar
 
