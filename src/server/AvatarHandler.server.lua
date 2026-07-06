@@ -25,18 +25,28 @@ end
 -- Cache: guarda la apariencia original de cada jugador
 local originalDescriptions = {}
 
+-- CharacterAppearanceLoaded es el evento correcto para esto: se dispara
+-- justo cuando Roblox terminó de cargar tu ropa/accesorios reales.
+local function cacheOriginalAppearance(player, character)
+    local humanoid = character:WaitForChild("Humanoid", 10)
+    if not humanoid then return end
+
+    local ok, desc = pcall(function()
+        return humanoid:GetAppliedDescription()
+    end)
+
+    if ok and desc then
+        originalDescriptions[player] = desc
+        print("[AvatarHandler] ✅ Apariencia guardada: " .. player.Name)
+    else
+        warn("[AvatarHandler] ⚠️ No se pudo guardar apariencia de "
+            .. player.Name .. ": " .. tostring(desc))
+    end
+end
+
 Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        local humanoid = character:WaitForChild("Humanoid", 10)
-        if not humanoid then return end
-        task.wait(2) -- Dar tiempo a que cargue la apariencia completa
-        local ok, desc = pcall(function()
-            return humanoid:GetAppliedDescription()
-        end)
-        if ok and desc then
-            originalDescriptions[player] = desc
-            print("[AvatarHandler] Apariencia guardada: " .. player.Name)
-        end
+    player.CharacterAppearanceLoaded:Connect(function(character)
+        cacheOriginalAppearance(player, character)
     end)
 end)
 
@@ -90,10 +100,14 @@ ResetAvatar.OnServerEvent:Connect(function(player)
     if not hum then return end
 
     local desc = originalDescriptions[player]
-    if desc then
-        pcall(function() hum:ApplyDescription(desc) end)
+if desc then
+    local ok, err = pcall(function() hum:ApplyDescription(desc) end)
+    if ok then
         print("[AvatarHandler] ✅ Reset: " .. player.Name)
     else
+        warn("[AvatarHandler] ❌ Error al resetear a " .. player.Name .. ": " .. tostring(err))
+    end
+else
         -- Fallback: solo borrar la ropa
         for _, child in ipairs(char:GetChildren()) do
             if child:IsA("Shirt") or child:IsA("Pants") then child:Destroy() end

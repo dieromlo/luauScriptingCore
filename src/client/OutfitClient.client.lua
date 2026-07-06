@@ -495,12 +495,7 @@ btnSprint.MouseButton1Click:Connect(function() applySprint(not isSprinting) end)
 
 -- [2] RESET SYSTEM
 btnReset.MouseButton1Click:Connect(function()
-    ResetAvatar:FireServer()
-    TweenService:Create(btnReset, T_FAST, {BackgroundColor3 = C.success}):Play()
-    task.delay(0.5, function()
-        TweenService:Create(btnReset, T_MED, {BackgroundColor3 = C.bgCard}):Play()
-    end)
-    showToast("Avatar reseteado", "neutral", 2)
+    if activeMenu == "ResetConfirm" then closeAllMenus() else openMenu("ResetConfirm") end
 end)
 
 -- ══════════════════════════════════════════════════════════════
@@ -1591,6 +1586,91 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 -- ══════════════════════════════════════════════════════════════
+--  [MODAL 4] MENU CONFIRMACIÓN DE RESET
+-- ══════════════════════════════════════════════════════════════
+local RW, RH     = 380, 220
+local RESET_HIDE = UDim2.new(0.5, -RW/2, 1.5, 0)
+local RESET_SHOW = UDim2.new(0.5, -RW/2, 0.5, -RH/2)
+
+local ResetConfirmPanel = Instance.new("Frame")
+ResetConfirmPanel.Name             = "ResetConfirmPanel"
+ResetConfirmPanel.Size             = UDim2.new(0, RW, 0, RH)
+ResetConfirmPanel.Position         = RESET_HIDE
+ResetConfirmPanel.BackgroundColor3 = C.bgBase
+ResetConfirmPanel.BorderSizePixel  = 0
+ResetConfirmPanel.ZIndex           = 15
+uiCorner(ResetConfirmPanel, 18)
+uiStroke(ResetConfirmPanel, C.border, 1.5)
+ResetConfirmPanel.Parent = GUI
+
+local rcTitle = Instance.new("TextLabel")
+rcTitle.Size             = UDim2.new(1, -48, 0, 28)
+rcTitle.Position         = UDim2.new(0, 24, 0, 24)
+rcTitle.BackgroundTransparency = 1
+rcTitle.TextColor3       = C.txtMain
+rcTitle.Font             = F_BOLD
+rcTitle.TextSize         = 19
+rcTitle.TextXAlignment   = Enum.TextXAlignment.Left
+rcTitle.Text             = "¿Resetear tu avatar?"
+rcTitle.ZIndex           = 16
+rcTitle.Parent           = ResetConfirmPanel
+
+local rcSubtitle = Instance.new("TextLabel")
+rcSubtitle.Size             = UDim2.new(1, -48, 0, 40)
+rcSubtitle.Position         = UDim2.new(0, 24, 0, 56)
+rcSubtitle.BackgroundTransparency = 1
+rcSubtitle.TextColor3       = C.txtSub
+rcSubtitle.Font             = F_NORMAL
+rcSubtitle.TextSize         = 13
+rcSubtitle.TextWrapped      = true
+rcSubtitle.TextXAlignment   = Enum.TextXAlignment.Left
+rcSubtitle.Text             = "Perderás cualquier prenda que te hayas probado y volverás a tu apariencia original."
+rcSubtitle.ZIndex           = 16
+rcSubtitle.Parent           = ResetConfirmPanel
+
+local btnRcCancel = Instance.new("TextButton")
+btnRcCancel.Size             = UDim2.new(0, 160, 0, 46)
+btnRcCancel.Position         = UDim2.new(0, 24, 1, -70)
+btnRcCancel.BackgroundColor3 = C.bgBtn
+btnRcCancel.Text             = "CANCELAR"
+btnRcCancel.TextColor3       = C.txtMain
+btnRcCancel.Font             = F_BOLD
+btnRcCancel.TextSize         = 13
+btnRcCancel.BorderSizePixel  = 0
+btnRcCancel.ZIndex           = 16
+uiCorner(btnRcCancel, 10)
+uiStroke(btnRcCancel, C.border)
+btnRcCancel.Parent = ResetConfirmPanel
+
+local btnRcConfirm = Instance.new("TextButton")
+btnRcConfirm.Size             = UDim2.new(0, 160, 0, 46)
+btnRcConfirm.Position         = UDim2.new(1, -184, 1, -70)
+btnRcConfirm.BackgroundColor3 = C.accent
+btnRcConfirm.Text             = "SÍ, RESETEAR"
+btnRcConfirm.TextColor3       = C.bgBase
+btnRcConfirm.Font             = F_BOLD
+btnRcConfirm.TextSize         = 13
+btnRcConfirm.BorderSizePixel  = 0
+btnRcConfirm.ZIndex           = 16
+uiCorner(btnRcConfirm, 10)
+btnRcConfirm.Parent = ResetConfirmPanel
+
+btnRcCancel.MouseEnter:Connect(function()
+    playHover()
+    TweenService:Create(btnRcCancel, T_FAST, {BackgroundColor3 = C.bgBtnHover}):Play()
+end)
+btnRcCancel.MouseLeave:Connect(function()
+    TweenService:Create(btnRcCancel, T_FAST, {BackgroundColor3 = C.bgBtn}):Play()
+end)
+btnRcConfirm.MouseEnter:Connect(function()
+    playHover()
+    TweenService:Create(btnRcConfirm, T_FAST, {BackgroundColor3 = C.accentHover}):Play()
+end)
+btnRcConfirm.MouseLeave:Connect(function()
+    TweenService:Create(btnRcConfirm, T_FAST, {BackgroundColor3 = C.accent}):Play()
+end)
+
+-- ══════════════════════════════════════════════════════════════
 --  CONTROL INTERACTIVO GLOBAL (MODALES)
 -- ══════════════════════════════════════════════════════════════
 local function closeAllMenus()
@@ -1605,6 +1685,8 @@ local function closeAllMenus()
         TweenService:Create(Panel, T_SLOW, {Position = POS_HIDE}):Play()
     elseif activeMenu == "Customize" then
         TweenService:Create(CustomizePanel, T_SLOW, {Position = CUSTOM_HIDE}):Play()
+    elseif activeMenu == "ResetConfirm" then
+        TweenService:Create(ResetConfirmPanel, T_SLOW, {Position = RESET_HIDE}):Play()
     end
 
     task.delay(0.4, function() Backdrop.Visible = false end)
@@ -1637,6 +1719,9 @@ local function openMenu(menuType, data)
         reconcileItemsGrid()
         CustomizePanel.Position = CUSTOM_SHOW
         TweenService:Create(CustomizePanel, T_MED, {Position = CUSTOM_SHOW}):Play()
+
+    elseif menuType == "ResetConfirm" then
+        TweenService:Create(ResetConfirmPanel, T_MED, {Position = RESET_SHOW}):Play()
     end
 end
 
@@ -1650,6 +1735,18 @@ end)
 btnSetClose.MouseButton1Click:Connect(closeAllMenus)
 btnClose.MouseButton1Click:Connect(closeAllMenus)
 btnCustClose.MouseButton1Click:Connect(closeAllMenus)
+btnRcCancel.MouseButton1Click:Connect(function()
+    playClick()
+    closeAllMenus()
+end)
+
+btnRcConfirm.MouseButton1Click:Connect(function()
+    playClick()
+    ResetAvatar:FireServer()
+    TweenService:Create(btnRcConfirm, T_FAST, {BackgroundColor3 = C.success}):Play()
+    showToast("Avatar reseteado", "neutral", 2)
+    task.delay(0.15, function() closeAllMenus() end)
+end)
 
 UserInputService.InputBegan:Connect(function(inp, gp)
     if gp then return end
