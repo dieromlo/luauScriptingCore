@@ -73,61 +73,23 @@ local function playClick()
 end
 
 -- ══════════════════════════════════════════════════════════════
---  TOKENS DE DISEÑO (TRUE DARK PURE MODIFICATIONS)
+--  UI KIT COMPARTIDO
+--  Antes estos valores se declaraban aquí mismo; ahora viven en
+--  un ModuleScript para que otros paneles (que vamos a separar
+--  en las próximas etapas) puedan usar exactamente los mismos
+--  colores/fuentes/animaciones sin duplicar código.
 -- ══════════════════════════════════════════════════════════════
-local C = {
-    bgBase      = Color3.fromRGB(10, 10, 10),     -- Negro Puro
-    bgCard      = Color3.fromRGB(22, 22, 22),     -- Gris Carbón
-    bgBtn       = Color3.fromRGB(32, 32, 32),     -- Botones Apagados
-    bgBtnHover  = Color3.fromRGB(48, 48, 48),     -- Iluminación Neutra
-    accent      = Color3.fromRGB(255, 255, 255),  -- Blanco Puro
-    accentHover = Color3.fromRGB(220, 220, 220),
-    success     = Color3.fromRGB(46, 204, 113),   -- Verde Resetear exitoso
-    txtMain     = Color3.fromRGB(255, 255, 255),
-    txtSub      = Color3.fromRGB(150, 150, 150),  -- Texto secundario sin azul
-    txtMuted    = Color3.fromRGB(90, 90, 90),
-    border      = Color3.fromRGB(38, 38, 38),
-    borderHot   = Color3.fromRGB(255, 255, 255),
-}
+local UIKit = require(script.Parent.modules.UIKit)
 
-local F_BOLD   = Enum.Font.GothamBold
-local F_NORMAL = Enum.Font.Gotham
-
--- Tiempos e Interpolaciones fluidas
-local T_FAST = TweenInfo.new(0.12, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
-local T_MED  = TweenInfo.new(0.30, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local T_SLOW = TweenInfo.new(0.50, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-
--- ══════════════════════════════════════════════════════════════
---  ICONOGRAFÍA VECTORIAL MINIMALISTA
--- ══════════════════════════════════════════════════════════════
-local ICONS = {
-    Run      = "rbxassetid://116542655589112", -- Icono correr minimalista
-    Cart     = "rbxassetid://136191071460353", -- Icono del Carrito de Compras
-    Save     = "rbxassetid://12403099725",  -- Icono de Guardar
-    Settings = "rbxassetid://98202862460239", -- Icono de Settings
-    Reset    = "rbxassetid://87873470710971", -- Icono de Recargar Avatar
-    Close    = "rbxassetid://98320673588366", -- Icono de Cerrar la pestaña
-}
-    
--- ══════════════════════════════════════════════════════════════
---  HELPERS DE INTERFAZ
--- ══════════════════════════════════════════════════════════════
-local function uiCorner(p, px)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, px or 12)
-    c.Parent = p
-    return c
-end
-
-local function uiStroke(p, col, px)
-    local s = Instance.new("UIStroke")
-    s.Color    = col or C.border
-    s.Thickness = px or 1.2
-    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    s.Parent   = p
-    return s
-end
+local C           = UIKit.C
+local F_BOLD      = UIKit.F_BOLD
+local F_NORMAL    = UIKit.F_NORMAL
+local T_FAST      = UIKit.T_FAST
+local T_MED       = UIKit.T_MED
+local T_SLOW      = UIKit.T_SLOW
+local ICONS       = UIKit.ICONS
+local uiCorner    = UIKit.uiCorner
+local uiStroke    = UIKit.uiStroke
 
 -- ══════════════════════════════════════════════════════════════
 --  ROOT GUI
