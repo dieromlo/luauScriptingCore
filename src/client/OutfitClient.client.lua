@@ -107,9 +107,9 @@ local ICONS = {
     Save     = "rbxassetid://12403099725",  -- Icono de Guardar
     Settings = "rbxassetid://98202862460239", -- Icono de Settings
     Reset    = "rbxassetid://87873470710971", -- Icono de Recargar Avatar
-    Close    = "rbxassetid://9649924868", -- Icono de Cerrar la pestaña
+    Close    = "rbxassetid://98320673588366", -- Icono de Cerrar la pestaña
 }
-
+    
 -- ══════════════════════════════════════════════════════════════
 --  HELPERS DE INTERFAZ
 -- ══════════════════════════════════════════════════════════════
