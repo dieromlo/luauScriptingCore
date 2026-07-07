@@ -310,7 +310,7 @@ btnSprint.MouseButton1Click:Connect(function() applySprint(not isSprinting) end)
 
 -- [2] RESET SYSTEM
 btnReset.MouseButton1Click:Connect(function()
-    if activeMenu == "ResetConfirm" then closeAllMenus() else openMenu("ResetConfirm") end
+    if MenuManager.GetActive() == "ResetConfirm" then closeAllMenus() else openMenu("ResetConfirm") end
 end)
 
 -- ══════════════════════════════════════════════════════════════
@@ -710,8 +710,6 @@ setButtonInteractions(btnBuy, true)
 -- ══════════════════════════════════════════════════════════════
 --  [MODAL 3] CUSTOMIZE PANEL — Fase de pulido UI/UX
 -- ══════════════════════════════════════════════════════════════
-
-local activeMenu = nil
 
 -- Colores de interacción Premium
 C.buyGreen      = Color3.fromRGB(47, 143, 91)
@@ -1374,12 +1372,12 @@ local function watchCharacterForCustomize(character)
     character.ChildAdded:Connect(function(child)
         if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
             task.wait(0.1)
-            if activeMenu == "Customize" then reconcileItemsGrid() pulseViewport() end
+            if MenuManager.GetActive() == "Customize" then reconcileItemsGrid() pulseViewport() end
         end
     end)
     character.ChildRemoved:Connect(function(child)
         if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
-            if activeMenu == "Customize" then reconcileItemsGrid() end
+            if MenuManager.GetActive() == "Customize" then reconcileItemsGrid() end
         end
     end)
 end
@@ -1388,7 +1386,7 @@ if player.Character then watchCharacterForCustomize(player.Character) end
 player.CharacterAdded:Connect(function(char)
     watchCharacterForCustomize(char)
     task.wait(0.5)
-    if activeMenu == "Customize" then loadPreviewCharacter() end
+    if MenuManager.GetActive() == "Customize" then loadPreviewCharacter() end
 end)
 
 -- ══════════════════════════════════════════════════════════════
@@ -1478,64 +1476,76 @@ end)
 
 -- ══════════════════════════════════════════════════════════════
 --  CONTROL INTERACTIVO GLOBAL (MODALES)
+--  Delegado a MenuManager. Cada panel se registra con su propia
+--  función de mostrar/ocultar.
 -- ══════════════════════════════════════════════════════════════
-local function closeAllMenus()
-    if not activeMenu then return end
-    playSoundClose()
-    blurOut()
-    TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 1}):Play()
+MenuManager.Init({
+    backdrop     = Backdrop,
+    blurIn       = blurIn,
+    blurOut      = blurOut,
+    tweenMed     = T_MED,
+    onOpenSound  = playSoundOpen,
+    onCloseSound = playSoundClose,
+})
 
-    if activeMenu == "Settings" then
-        TweenService:Create(SetPanel, T_SLOW, {Position = SET_HIDE}):Play()
-    elseif activeMenu == "Outfit" then
-        TweenService:Create(Panel, T_SLOW, {Position = POS_HIDE}):Play()
-    elseif activeMenu == "Customize" then
-        TweenService:Create(CustomizePanel, T_SLOW, {Position = CUSTOM_HIDE}):Play()
-    elseif activeMenu == "ResetConfirm" then
-        TweenService:Create(ResetConfirmPanel, T_SLOW, {Position = RESET_HIDE}):Play()
-    end
-
-    task.delay(0.4, function() Backdrop.Visible = false end)
-    activeMenu = nil
-end
-
-local function openMenu(menuType, data)
-    closeAllMenus()
-    activeMenu = menuType
-    playSoundOpen()
-    Backdrop.Visible = true
-    blurIn()
-    TweenService:Create(Backdrop, T_MED, {BackgroundTransparency = 0.3}):Play()
-
-    if menuType == "Settings" then
+MenuManager.Register("Settings",
+    function()
         TweenService:Create(SetPanel, T_MED, {Position = SET_SHOW}):Play()
+    end,
+    function()
+        TweenService:Create(SetPanel, T_SLOW, {Position = SET_HIDE}):Play()
+    end
+)
 
-    elseif menuType == "Outfit" and data then
-        lblName.Text = data.name or "Look Desconocido"
-        local sid = data.shirt or 0
-        local pid = data.pants or 0
-        shirtImg.Image  = sid ~= 0 and ("rbxthumb://type=Asset&id=" .. sid .. "&w=150&h=150") or ""
-        shirtIdLbl.Text = sid ~= 0 and ("ID: " .. sid) or "Vacante"
-        pantsImg.Image  = pid ~= 0 and ("rbxthumb://type=Asset&id=" .. pid .. "&w=150&h=150") or ""
-        pantsIdLbl.Text = pid ~= 0 and ("ID: " .. pid) or "Vacante"
+MenuManager.Register("Outfit",
+    function(data)
+        if data then
+            lblName.Text = data.name or "Look Desconocido"
+            local sid = data.shirt or 0
+            local pid = data.pants or 0
+            shirtImg.Image  = sid ~= 0 and ("rbxthumb://type=Asset&id=" .. sid .. "&w=150&h=150") or ""
+            shirtIdLbl.Text = sid ~= 0 and ("ID: " .. sid) or "Vacante"
+            pantsImg.Image  = pid ~= 0 and ("rbxthumb://type=Asset&id=" .. pid .. "&w=150&h=150") or ""
+            pantsIdLbl.Text = pid ~= 0 and ("ID: " .. pid) or "Vacante"
+        end
         TweenService:Create(Panel, T_MED, {Position = POS_SHOW}):Play()
+    end,
+    function()
+        TweenService:Create(Panel, T_SLOW, {Position = POS_HIDE}):Play()
+    end
+)
 
-    elseif menuType == "Customize" then
+MenuManager.Register("Customize",
+    function()
         loadPreviewCharacter()
         reconcileItemsGrid()
         CustomizePanel.Position = CUSTOM_SHOW
         TweenService:Create(CustomizePanel, T_MED, {Position = CUSTOM_SHOW}):Play()
-
-    elseif menuType == "ResetConfirm" then
-        TweenService:Create(ResetConfirmPanel, T_MED, {Position = RESET_SHOW}):Play()
+    end,
+    function()
+        TweenService:Create(CustomizePanel, T_SLOW, {Position = CUSTOM_HIDE}):Play()
     end
-end
+)
+
+MenuManager.Register("ResetConfirm",
+    function()
+        TweenService:Create(ResetConfirmPanel, T_MED, {Position = RESET_SHOW}):Play()
+    end,
+    function()
+        TweenService:Create(ResetConfirmPanel, T_SLOW, {Position = RESET_HIDE}):Play()
+    end
+)
+
+-- Aliases: el resto del archivo sigue llamando openMenu(...) y
+-- closeAllMenus() exactamente igual que siempre.
+local function openMenu(name, data) MenuManager.Open(name, data) end
+local function closeAllMenus() MenuManager.CloseAll() end
 
 btnSettings.MouseButton1Click:Connect(function()
-    if activeMenu == "Settings" then closeAllMenus() else openMenu("Settings") end
+    if MenuManager.GetActive() == "Settings" then closeAllMenus() else openMenu("Settings") end
 end)
 btnCustomize.MouseButton1Click:Connect(function()
-    if activeMenu == "Customize" then closeAllMenus() else openMenu("Customize") end
+    if MenuManager.GetActive() == "Customize" then closeAllMenus() else openMenu("Customize") end
 end)
 
 btnSetClose.MouseButton1Click:Connect(closeAllMenus)
