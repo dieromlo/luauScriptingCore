@@ -34,50 +34,32 @@ if not TryOnOutfit then error("[OutfitClient] ❌ TryOnOutfit no encontrado") en
 if not ResetAvatar then error("[OutfitClient] ❌ ResetAvatar no encontrado") end
 
 -- ══════════════════════════════════════════════════════════════
---  SISTEMA DE AUDIO UI (Sutil y Premium)
+--  SISTEMA DE AUDIO UI
+--  Todos los sonidos ahora viven en SoundKit.lua. Cree el alias
+--  con los mismos nombres de siempre para no tener que tocar
+--  las decenas de MouseEnter/MouseButton1Click que ya los usan
 -- ══════════════════════════════════════════════════════════════
-local uiSounds = SoundService:FindFirstChild("InfectedMemories_UISounds")
-if not uiSounds then
-    uiSounds = Instance.new("Folder")
-    uiSounds.Name = "InfectedMemories_UISounds"
-    uiSounds.Parent = SoundService
-end
+local SoundKit = require(script.Parent.modules.SoundKit)
+SoundKit.Init()
 
-local function getOrCreateSound(name, id, vol, pitch)
-    local s = uiSounds:FindFirstChild(name)
-    if not s then
-        s = Instance.new("Sound")
-        s.Name = name
-        s.SoundId = "rbxassetid://" .. id
-        s.Volume = vol or 0.5
-        s.PlaybackSpeed = pitch or 1
-        s.Parent = uiSounds
-    end
-    return s
-end
+local MenuManager = require(script.Parent.modules.MenuManager)
+-- Lo hago aquí arriba, porque el botón de Reset (más abajo
+-- en este mismo archivo) necesita leer MenuManager.GetActive()
+-- antes de llegar a la sección donde configuramos los paneles
 
--- ══════════════════════════════════════════════════════════════
---  TOGGLE DE SONIDOS DE LA UI
--- ══════════════════════════════════════════════════════════════
-local sndHover = getOrCreateSound("Hover", "6895079853", 0.5, 1.2)
-local sndClick = getOrCreateSound("Click", "6895079853", 0.5, 1.0)
-
-local sonidosActivos = true
-
-local function playHover()
-    if sonidosActivos and sndHover.IsLoaded then sndHover:Play() end
-end
-
-local function playClick()
-    if sonidosActivos and sndClick.IsLoaded then sndClick:Play() end
-end
+local function playHover()       SoundKit.PlayHover()  end
+local function playClick()       SoundKit.PlayClick()  end
+local function playSoundBuy()    SoundKit.PlayBuy()    end
+local function playSoundRemove() SoundKit.PlayRemove() end
+local function playSoundOpen()   SoundKit.PlayOpen()   end
+local function playSoundClose()  SoundKit.PlayClose()  end
 
 -- ══════════════════════════════════════════════════════════════
 --  UI KIT COMPARTIDO
 --  Antes estos valores se declaraban aquí mismo; ahora viven en
 --  un ModuleScript para que otros paneles (que vamos a separar
 --  en las próximas etapas) puedan usar exactamente los mismos
---  colores/fuentes/animaciones sin duplicar código.
+--  colores/fuentes/animaciones sin duplicar codigo
 -- ══════════════════════════════════════════════════════════════
 local UIKit = require(script.Parent.modules.UIKit)
 
@@ -608,7 +590,7 @@ makeToggleRow("Ocultar Jugadores", "Incrementa FPS haciendo invisibles a otros a
     end
 end)
 makeToggleRow("Efectos de Sonido", "Administra la salida de audio de la interfaz", 2, true, function(state)
-    sonidosActivos = state
+    SoundKit.SetEnabled(state)
     -- Controla la música ambiente del script AmbientAudio
     if _G.InfectedAudio then
         if state then
@@ -864,15 +846,6 @@ local activeMenu = nil
 C.buyGreen      = Color3.fromRGB(47, 143, 91)
 C.buyGreenHover = Color3.fromRGB(58, 154, 103)
 
-local sndBuy    = getOrCreateSound("Buy",       "6895079853", 0.45, 1.35)
-local sndRemove = getOrCreateSound("Remove",    "6895079853", 0.40, 0.75)
-local sndOpen   = getOrCreateSound("MenuOpen",  "6895079853", 0.35, 0.90)
-local sndClose  = getOrCreateSound("MenuClose", "6895079853", 0.30, 0.65)
-
-local function playSoundBuy()    if sonidosActivos and sndBuy.IsLoaded    then sndBuy:Play()    end end
-local function playSoundRemove() if sonidosActivos and sndRemove.IsLoaded then sndRemove:Play() end end
-local function playSoundOpen()   if sonidosActivos and sndOpen.IsLoaded   then sndOpen:Play()   end end
-local function playSoundClose()  if sonidosActivos and sndClose.IsLoaded  then sndClose:Play()  end end
 
 -- Ajuste de altura para evitar sobreposición con el HUD inferior (Bug corregido)
 local CW, CH       = 1120, 610 
