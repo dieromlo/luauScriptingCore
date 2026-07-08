@@ -1,126 +1,276 @@
 -- ============================================================
 --  ToastSystem.lua
 --  ModuleScript | StarterPlayerScripts/modules
---  Notificaciones tipo "toast": arriba a la derecha, se apilan,
---  desaparecen solas.
+--  Notificaciones premium: stacking dinámico, sombra, slide +
+--  scale + fade, barra de progreso lineal.
 -- ============================================================
 
 local TweenService = game:GetService("TweenService")
-
-local UIKit = require(script.Parent.UIKit)
-local C, F_BOLD, F_NORMAL = UIKit.C, UIKit.F_BOLD, UIKit.F_NORMAL
-local uiCorner, uiStroke = UIKit.uiCorner, UIKit.uiStroke
+local RunService    = game:GetService("RunService")
 
 local ToastSystem = {}
 
-local TOAST_W       = 280
-local TOAST_H       = 56
-local TOAST_PADDING = 10
-local TOAST_SHOW_Y  = 20
-local toastQueue    = {}
-local TOAST_TYPES   = {
-    success = {icon = "✓", color = Color3.fromRGB(40, 185, 90)},
-    error   = {icon = "✕", color = Color3.fromRGB(196, 22, 42)},
-    info    = {icon = "i", color = Color3.fromRGB(80, 140, 220)},
-    neutral = {icon = "·", color = Color3.fromRGB(150, 150, 150)},
+local TOAST_WIDTH  = 300
+local STACK_GAP    = 12
+local BASE_POS_X   = 24
+local BASE_POS_Y   = 24
+local DURATION_DEF = 4.5
+
+local C = {
+    Background = Color3.fromRGB(14, 14, 16),
+    Title      = Color3.fromRGB(255, 255, 255),
+    Message    = Color3.fromRGB(170, 170, 170),
+    Stroke     = Color3.fromRGB(255, 255, 255),
+    Shadow     = Color3.fromRGB(0, 0, 0),
 }
 
-local toastContainer
+-- Íconos como texto: siempre se ven, cero dependencia de Asset IDs
+local TYPES = {
+    success = {color = Color3.fromRGB(70, 210, 130), icon = "✓"},
+    error   = {color = Color3.fromRGB(240, 80, 100), icon = "✕"},
+    info    = {color = Color3.fromRGB(90, 170, 255), icon = "i"},
+    warning = {color = Color3.fromRGB(255, 190, 80), icon = "!"},
+    neutral = {color = Color3.fromRGB(180, 180, 180), icon = "·"},
+}
 
+local T_SLIDE = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local T_FADE  = TweenInfo.new(0.35, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
+
+local activeToasts = {}
+local containerGUI = nil
+
+-- Antes creaba su propio ScreenGui aparte. Ahora usa el GUI
+-- compartido que arma OutfitClient (el mismo de Settings/Outfit/
+-- Customize/ResetConfirm).
 function ToastSystem.Init(guiParent)
-    toastContainer = Instance.new("Frame")
-    toastContainer.Name             = "ToastContainer"
-    toastContainer.Size             = UDim2.new(0, TOAST_W, 1, 0)
-    toastContainer.Position         = UDim2.new(1, -(TOAST_W + 16), 0, 0)
-    toastContainer.BackgroundTransparency = 1
-    toastContainer.ZIndex           = 100
-    toastContainer.Parent           = guiParent
+    containerGUI = guiParent
 end
 
-function ToastSystem.Show(message, toastType, duration)
-    toastType = toastType or "neutral"
-    duration  = duration  or 3
-    local style = TOAST_TYPES[toastType] or TOAST_TYPES.neutral
+local function getContainer()
+    return containerGUI
+end
 
-    local yOffset = TOAST_SHOW_Y
-    for _, existing in ipairs(toastQueue) do
-        if existing and existing.Parent then
-            yOffset = yOffset + TOAST_H + TOAST_PADDING
+local function applyFade(element, targetTransparency)
+    if element:IsA("TextLabel") then
+        TweenService:Create(element, T_FADE, {TextTransparency = targetTransparency}):Play()
+    elseif element:IsA("ImageLabel") then
+        TweenService:Create(element, T_FADE, {ImageTransparency = targetTransparency}):Play()
+    elseif element:IsA("Frame") then
+        TweenService:Create(element, T_FADE, {BackgroundTransparency = targetTransparency}):Play()
+    elseif element:IsA("UIStroke") then
+        local alpha = targetTransparency == 0 and 0.92 or 1
+        TweenService:Create(element, T_FADE, {Transparency = alpha}):Play()
+    end
+    for _, child in ipairs(element:GetChildren()) do
+        applyFade(child, targetTransparency)
+    end
+end
+
+local function updateStackLayout()
+    local currentY = BASE_POS_Y
+    for _, toastData in ipairs(activeToasts) do
+        if toastData.root and toastData.root.Parent then
+            local targetPos = UDim2.new(1, -BASE_POS_X, 0, currentY)
+            TweenService:Create(toastData.root, T_SLIDE, {Position = targetPos}):Play()
+            currentY = currentY + toastData.root.AbsoluteSize.Y + STACK_GAP
         end
     end
+end
 
-    local toast = Instance.new("Frame")
-    toast.Name             = "Toast"
-    toast.Size             = UDim2.new(1, 0, 0, TOAST_H)
-    toast.Position         = UDim2.new(1.2, 0, 0, yOffset)
-    toast.BackgroundColor3 = C.bgCard
-    toast.BorderSizePixel  = 0
-    toast.ZIndex           = 101
-    uiCorner(toast, 12)
-    uiStroke(toast, C.border, 1)
-    toast.Parent = toastContainer
+local function createToastUI(titleText, messageText, typeData)
+    local root = Instance.new("Frame")
+    root.Name                   = "ToastRoot"
+    root.Size                   = UDim2.new(0, TOAST_WIDTH, 0, 0)
+    root.Position                = UDim2.new(1, 0, 0, BASE_POS_Y)
+    root.AnchorPoint             = Vector2.new(1, 0)
+    root.BackgroundTransparency = 1
+    root.AutomaticSize           = Enum.AutomaticSize.Y
+    root.ZIndex                  = 200 -- Encima de cualquier modal abierto
 
-    local icoLbl = Instance.new("TextLabel")
-    icoLbl.Size             = UDim2.new(0, 32, 1, -8)
-    icoLbl.Position         = UDim2.new(0, 16, 0, 0)
-    icoLbl.BackgroundTransparency = 1
-    icoLbl.Text             = style.icon
-    icoLbl.TextColor3       = style.color
-    icoLbl.TextSize         = 20
-    icoLbl.Font             = F_BOLD
-    icoLbl.TextYAlignment   = Enum.TextYAlignment.Center
-    icoLbl.ZIndex           = 102
-    icoLbl.Parent           = toast
+    local scale = Instance.new("UIScale")
+    scale.Scale = 0.9
+    scale.Parent = root
 
-    local msgLbl = Instance.new("TextLabel")
-    msgLbl.Size             = UDim2.new(1, -64, 1, -8)
-    msgLbl.Position         = UDim2.new(0, 54, 0, 0)
-    msgLbl.BackgroundTransparency = 1
-    msgLbl.Text             = message
-    msgLbl.TextColor3       = C.txtMain
-    msgLbl.TextSize         = 14
-    msgLbl.Font             = F_NORMAL
-    msgLbl.TextXAlignment   = Enum.TextXAlignment.Left
-    msgLbl.TextYAlignment   = Enum.TextYAlignment.Center
-    msgLbl.TextWrapped      = true
-    msgLbl.ZIndex           = 102
-    msgLbl.Parent           = toast
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name              = "Shadow"
+    shadow.Size              = UDim2.new(1, 30, 1, 30)
+    shadow.Position          = UDim2.new(0.5, 0, 0.5, 4)
+    shadow.AnchorPoint       = Vector2.new(0.5, 0.5)
+    shadow.BackgroundTransparency = 1
+    shadow.Image             = "rbxassetid://13162797317"
+    shadow.ImageColor3       = C.Shadow
+    shadow.ImageTransparency = 1
+    shadow.ScaleType         = Enum.ScaleType.Slice
+    shadow.SliceCenter       = Rect.new(10, 10, 118, 118)
+    shadow.ZIndex            = root.ZIndex
+    shadow.Parent            = root
 
-    local progressBg = Instance.new("Frame")
-    progressBg.Size             = UDim2.new(1, -16, 0, 2)
-    progressBg.Position         = UDim2.new(0, 8, 1, -6)
-    progressBg.BackgroundColor3 = C.border
-    progressBg.BorderSizePixel  = 0
-    uiCorner(progressBg, 1)
-    progressBg.Parent = toast
+    local card = Instance.new("Frame")
+    card.Name              = "Card"
+    card.Size              = UDim2.new(1, 0, 1, 0)
+    card.BackgroundColor3  = C.Background
+    card.BackgroundTransparency = 1
+    card.ClipsDescendants  = true
+    card.ZIndex             = root.ZIndex + 1
+    card.Parent             = root
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = card
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color           = C.Stroke
+    stroke.Transparency     = 1
+    stroke.Thickness        = 1
+    stroke.ApplyStrokeMode  = Enum.ApplyStrokeMode.Border
+    stroke.Parent           = card
+
+    local content = Instance.new("Frame")
+    content.Size             = UDim2.new(1, 0, 1, 0)
+    content.BackgroundTransparency = 1
+    content.ZIndex           = root.ZIndex + 2
+    content.Parent           = card
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop    = UDim.new(0, 14)
+    padding.PaddingBottom = UDim.new(0, 14)
+    padding.PaddingLeft   = UDim.new(0, 18)
+    padding.PaddingRight  = UDim.new(0, 18)
+    padding.Parent = content
+
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection     = Enum.FillDirection.Horizontal
+    layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    layout.SortOrder         = Enum.SortOrder.LayoutOrder
+    layout.Padding           = UDim.new(0, 14)
+    layout.Parent            = content
+
+    local icon = Instance.new("TextLabel")
+    icon.Size              = UDim2.new(0, 20, 0, 20)
+    icon.BackgroundTransparency = 1
+    icon.Text               = typeData.icon
+    icon.TextColor3         = typeData.color
+    icon.TextTransparency   = 1
+    icon.Font               = Enum.Font.GothamBold
+    icon.TextSize           = 16
+    icon.LayoutOrder        = 1
+    icon.ZIndex             = root.ZIndex + 3
+    icon.Parent             = content
+
+    local textContainer = Instance.new("Frame")
+    textContainer.Size             = UDim2.new(1, -34, 0, 0)
+    textContainer.BackgroundTransparency = 1
+    textContainer.AutomaticSize     = Enum.AutomaticSize.Y
+    textContainer.LayoutOrder       = 2
+    textContainer.Parent            = content
+
+    local textLayout = Instance.new("UIListLayout")
+    textLayout.FillDirection = Enum.FillDirection.Vertical
+    textLayout.SortOrder     = Enum.SortOrder.LayoutOrder
+    textLayout.Padding       = UDim.new(0, 3)
+    textLayout.Parent        = textContainer
+
+    local titleLbl = Instance.new("TextLabel")
+    titleLbl.Size             = UDim2.new(1, 0, 0, 0)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text              = titleText
+    titleLbl.TextColor3        = C.Title
+    titleLbl.TextTransparency  = 1
+    titleLbl.Font              = Enum.Font.GothamBold
+    titleLbl.TextSize          = 14
+    titleLbl.TextXAlignment    = Enum.TextXAlignment.Left
+    titleLbl.AutomaticSize     = Enum.AutomaticSize.Y
+    titleLbl.TextWrapped       = true
+    titleLbl.LayoutOrder       = 1
+    titleLbl.ZIndex            = root.ZIndex + 3
+    titleLbl.Parent            = textContainer
+
+    if messageText and messageText ~= "" then
+        local msgLbl = Instance.new("TextLabel")
+        msgLbl.Size             = UDim2.new(1, 0, 0, 0)
+        msgLbl.BackgroundTransparency = 1
+        msgLbl.Text              = messageText
+        msgLbl.TextColor3        = C.Message
+        msgLbl.TextTransparency  = 1
+        msgLbl.Font              = Enum.Font.Gotham
+        msgLbl.TextSize          = 12
+        msgLbl.TextXAlignment    = Enum.TextXAlignment.Left
+        msgLbl.AutomaticSize     = Enum.AutomaticSize.Y
+        msgLbl.TextWrapped       = true
+        msgLbl.LayoutOrder       = 2
+        msgLbl.ZIndex            = root.ZIndex + 3
+        msgLbl.Parent            = textContainer
+    else
+        layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    end
+
+    local progressTrack = Instance.new("Frame")
+    progressTrack.Size             = UDim2.new(1, 0, 0, 2)
+    progressTrack.Position         = UDim2.new(0, 0, 1, 0)
+    progressTrack.AnchorPoint      = Vector2.new(0, 1)
+    progressTrack.BackgroundTransparency = 1
+    progressTrack.BorderSizePixel  = 0
+    progressTrack.ZIndex           = root.ZIndex + 4
+    progressTrack.Parent           = card
 
     local progressFill = Instance.new("Frame")
     progressFill.Size             = UDim2.new(1, 0, 1, 0)
-    progressFill.BackgroundColor3 = style.color
+    progressFill.BackgroundColor3 = typeData.color
+    progressFill.BackgroundTransparency = 1
     progressFill.BorderSizePixel  = 0
-    uiCorner(progressFill, 1)
-    progressFill.Parent = progressBg
+    progressFill.Parent           = progressTrack
 
-    table.insert(toastQueue, toast)
-    local T_TOAST = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    return root, scale, progressFill
+end
 
-    TweenService:Create(toast, T_TOAST, {Position = UDim2.new(0, 0, 0, yOffset)}):Play()
-    TweenService:Create(progressFill, TweenInfo.new(duration, Enum.EasingStyle.Linear),
+-- ─── API PÚBLICA ─────────────────────────────────────────────
+-- Misma firma que ya usa todo el proyecto: Show(message, type, duration)
+function ToastSystem.Show(message, toastType, duration)
+    local tType     = TYPES[string.lower(toastType or "")] or TYPES.neutral
+    local tDuration = duration or DURATION_DEF
+
+    local container = getContainer()
+    if not container then
+        warn("[ToastSystem] ⚠️ Show() llamado antes de Init(). Notificación ignorada.")
+        return
+    end
+
+    local root, scale, progressFill = createToastUI(message, nil, tType)
+    root.Parent = container
+
+    RunService.RenderStepped:Wait()
+
+    local toastData = {root = root}
+    table.insert(activeToasts, 1, toastData)
+    updateStackLayout()
+
+    TweenService:Create(scale, T_SLIDE, {Scale = 1}):Play()
+    applyFade(root, 0)
+    TweenService:Create(root.Shadow, T_FADE, {ImageTransparency = 0.5}):Play()
+
+    TweenService:Create(progressFill, TweenInfo.new(tDuration, Enum.EasingStyle.Linear),
         {Size = UDim2.new(0, 0, 1, 0)}):Play()
 
-    task.delay(duration, function()
-        if not toast or not toast.Parent then return end
-        TweenService:Create(toast, T_TOAST,
-            {Position = UDim2.new(1.2, 0, 0, yOffset), BackgroundTransparency = 0.6}):Play()
-        task.delay(0.35, function()
-            for i, t in ipairs(toastQueue) do
-                if t == toast then table.remove(toastQueue, i) break end
+    task.delay(tDuration, function()
+        if not root or not root.Parent then return end
+
+        for i, data in ipairs(activeToasts) do
+            if data.root == root then
+                table.remove(activeToasts, i)
+                break
             end
-            toast:Destroy()
-            for i, remaining in ipairs(toastQueue) do
-                local newY = TOAST_SHOW_Y + (i - 1) * (TOAST_H + TOAST_PADDING)
-                TweenService:Create(remaining, T_TOAST, {Position = UDim2.new(0, 0, 0, newY)}):Play()
-            end
+        end
+
+        TweenService:Create(scale, T_FADE, {Scale = 0.95}):Play()
+        applyFade(root, 1)
+
+        local currentY = root.Position.Y.Offset
+        TweenService:Create(root, T_FADE, {Position = UDim2.new(1, 0, 0, currentY)}):Play()
+
+        updateStackLayout()
+
+        task.delay(0.4, function()
+            root:Destroy()
         end)
     end)
 end

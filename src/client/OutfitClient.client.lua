@@ -43,6 +43,8 @@ local SoundKit = require(script.Parent.modules.SoundKit)
 SoundKit.Init()
 
 local MenuManager = require(script.Parent.modules.MenuManager)
+local function openMenu(name, data) MenuManager.Open(name, data) end
+local function closeAllMenus() MenuManager.CloseAll() end
 -- Lo hago aquí arriba, porque el botón de Reset (más abajo
 -- en este mismo archivo) necesita leer MenuManager.GetActive()
 -- antes de llegar a la sección donde configuramos los paneles
@@ -1535,11 +1537,6 @@ MenuManager.Register("ResetConfirm",
         TweenService:Create(ResetConfirmPanel, T_SLOW, {Position = RESET_HIDE}):Play()
     end
 )
-
--- Aliases: el resto del archivo sigue llamando openMenu(...) y
--- closeAllMenus() exactamente igual que siempre.
-local function openMenu(name, data) MenuManager.Open(name, data) end
-local function closeAllMenus() MenuManager.CloseAll() end
 
 btnSettings.MouseButton1Click:Connect(function()
     if MenuManager.GetActive() == "Settings" then closeAllMenus() else openMenu("Settings") end
