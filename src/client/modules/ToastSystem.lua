@@ -24,7 +24,6 @@ local C = {
     Shadow     = Color3.fromRGB(0, 0, 0),
 }
 
--- Íconos como texto: siempre se ven, cero dependencia de Asset IDs
 local TYPES = {
     success = {color = Color3.fromRGB(70, 210, 130), icon = "✓"},
     error   = {color = Color3.fromRGB(240, 80, 100), icon = "✕"},
@@ -39,31 +38,12 @@ local T_FADE  = TweenInfo.new(0.35, Enum.EasingStyle.Quad,  Enum.EasingDirection
 local activeToasts = {}
 local containerGUI = nil
 
--- Antes creaba su propio ScreenGui aparte. Ahora usa el GUI
--- compartido que arma OutfitClient (el mismo de Settings/Outfit/
--- Customize/ResetConfirm).
 function ToastSystem.Init(guiParent)
     containerGUI = guiParent
 end
 
 local function getContainer()
     return containerGUI
-end
-
-local function applyFade(element, targetTransparency)
-    if element:IsA("TextLabel") then
-        TweenService:Create(element, T_FADE, {TextTransparency = targetTransparency}):Play()
-    elseif element:IsA("ImageLabel") then
-        TweenService:Create(element, T_FADE, {ImageTransparency = targetTransparency}):Play()
-    elseif element:IsA("Frame") then
-        TweenService:Create(element, T_FADE, {BackgroundTransparency = targetTransparency}):Play()
-    elseif element:IsA("UIStroke") then
-        local alpha = targetTransparency == 0 and 0.92 or 1
-        TweenService:Create(element, T_FADE, {Transparency = alpha}):Play()
-    end
-    for _, child in ipairs(element:GetChildren()) do
-        applyFade(child, targetTransparency)
-    end
 end
 
 local function updateStackLayout()
@@ -85,7 +65,7 @@ local function createToastUI(titleText, messageText, typeData)
     root.AnchorPoint             = Vector2.new(1, 0)
     root.BackgroundTransparency = 1
     root.AutomaticSize           = Enum.AutomaticSize.Y
-    root.ZIndex                  = 200 -- Encima de cualquier modal abierto
+    root.ZIndex                  = 200
 
     local scale = Instance.new("UIScale")
     scale.Scale = 0.9
@@ -105,6 +85,7 @@ local function createToastUI(titleText, messageText, typeData)
     shadow.ZIndex            = root.ZIndex
     shadow.Parent            = root
 
+    -- Tarjeta base: ÚNICA con fondo visible real
     local card = Instance.new("Frame")
     card.Name              = "Card"
     card.Size              = UDim2.new(1, 0, 1, 0)
@@ -125,6 +106,10 @@ local function createToastUI(titleText, messageText, typeData)
     stroke.ApplyStrokeMode  = Enum.ApplyStrokeMode.Border
     stroke.Parent           = card
 
+    -- Estos tres frames son PURAMENTE estructurales: nunca se
+    -- animan, se quedan transparentes para siempre. Si algo se
+    -- vuelve gris/blanco otra vez, revisa que ninguno de estos
+    -- termine con BackgroundTransparency distinto de 1.
     local content = Instance.new("Frame")
     content.Size             = UDim2.new(1, 0, 1, 0)
     content.BackgroundTransparency = 1
@@ -220,11 +205,9 @@ local function createToastUI(titleText, messageText, typeData)
     progressFill.BorderSizePixel  = 0
     progressFill.Parent           = progressTrack
 
-    return root, scale, progressFill
+    return root, scale, progressFill, card, stroke, icon, titleLbl, shadow
 end
 
--- ─── API PÚBLICA ─────────────────────────────────────────────
--- Misma firma que ya usa todo el proyecto: Show(message, type, duration)
 function ToastSystem.Show(message, toastType, duration)
     local tType     = TYPES[string.lower(toastType or "")] or TYPES.neutral
     local tDuration = duration or DURATION_DEF
@@ -235,7 +218,8 @@ function ToastSystem.Show(message, toastType, duration)
         return
     end
 
-    local root, scale, progressFill = createToastUI(message, nil, tType)
+    local root, scale, progressFill, card, stroke, icon, titleLbl, shadow =
+        createToastUI(message, nil, tType)
     root.Parent = container
 
     RunService.RenderStepped:Wait()
@@ -244,9 +228,13 @@ function ToastSystem.Show(message, toastType, duration)
     table.insert(activeToasts, 1, toastData)
     updateStackLayout()
 
+    -- Fades DIRIGIDOS: solo los elementos que deben verse
     TweenService:Create(scale, T_SLIDE, {Scale = 1}):Play()
-    applyFade(root, 0)
-    TweenService:Create(root.Shadow, T_FADE, {ImageTransparency = 0.5}):Play()
+    TweenService:Create(card, T_FADE, {BackgroundTransparency = 0}):Play()
+    TweenService:Create(stroke, T_FADE, {Transparency = 0.92}):Play()
+    TweenService:Create(icon, T_FADE, {TextTransparency = 0}):Play()
+    TweenService:Create(titleLbl, T_FADE, {TextTransparency = 0}):Play()
+    TweenService:Create(shadow, T_FADE, {ImageTransparency = 0.5}):Play()
 
     TweenService:Create(progressFill, TweenInfo.new(tDuration, Enum.EasingStyle.Linear),
         {Size = UDim2.new(0, 0, 1, 0)}):Play()
@@ -262,7 +250,11 @@ function ToastSystem.Show(message, toastType, duration)
         end
 
         TweenService:Create(scale, T_FADE, {Scale = 0.95}):Play()
-        applyFade(root, 1)
+        TweenService:Create(card, T_FADE, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(stroke, T_FADE, {Transparency = 1}):Play()
+        TweenService:Create(icon, T_FADE, {TextTransparency = 1}):Play()
+        TweenService:Create(titleLbl, T_FADE, {TextTransparency = 1}):Play()
+        TweenService:Create(shadow, T_FADE, {ImageTransparency = 1}):Play()
 
         local currentY = root.Position.Y.Offset
         TweenService:Create(root, T_FADE, {Position = UDim2.new(1, 0, 0, currentY)}):Play()

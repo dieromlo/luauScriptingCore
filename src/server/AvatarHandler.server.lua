@@ -46,7 +46,20 @@ end
 
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAppearanceLoaded:Connect(function(character)
-        cacheOriginalAppearance(player, character)
+        local humanoid = character:WaitForChild("Humanoid", 10)
+        if not humanoid then return end
+
+        local ok, desc = pcall(function()
+            return humanoid:GetAppliedDescription()
+        end)
+
+        if ok and desc then
+            originalDescriptions[player] = desc
+            print("[AvatarHandler] ✅ Apariencia guardada: " .. player.Name)
+        else
+            warn("[AvatarHandler] ⚠️ No se pudo guardar apariencia de "
+                .. player.Name .. ": " .. tostring(desc))
+        end
     end)
 end)
 
