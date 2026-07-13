@@ -18,7 +18,7 @@ pcall(function()
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 end)
 
--- ─── Tokens (True Dark, sin acentos de color) ─────────────────
+-- ─── Tokens (True Dark) ─────────────────
 local C = {
     bgBase     = Color3.fromRGB(10, 10, 10),
     bgRow      = Color3.fromRGB(22, 22, 22),
@@ -87,7 +87,7 @@ local function getThumb(userId)
 end
 
 -- ─── Stats placeholder (listo para conectar a datos reales) ───
--- Por ahora todos los valores empiezan en 0. Cuando construyamos
+-- Por ahora todos los valores empiezan en 0. Cuando construya
 -- el sistema de compras/donaciones persistente, este es el punto
 -- donde conectaremos DataStoreService o un RemoteEvent del servidor.
 local playerStats = {}
