@@ -24,11 +24,6 @@ UIKit.C = {
     border      = Color3.fromRGB(38, 38, 38),
     borderHot   = Color3.fromRGB(255, 255, 255),
 
-    -- Estos dos ya existían pero se creaban en tiempo de ejecución
-    -- dentro de la sección de Customize. Los dejamos aquí desde
-    -- el inicio para no depender de que otro módulo "le agregue"
-    -- colores al kit compartido (mala práctica). En la Etapa 8
-    -- quitaremos las líneas que los creaban dinámicamente.
     buyGreen      = Color3.fromRGB(47, 143, 91),
     buyGreenHover = Color3.fromRGB(58, 154, 103),
 }
