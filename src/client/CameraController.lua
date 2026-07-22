@@ -10,7 +10,7 @@ local player  = Players.LocalPlayer
 -- ─── Límites de zoom ──────────────────────────────────────────
 -- MIN: qué tan cerca puede acercarse (en studs)
 -- MAX: qué tan lejos puede alejarse (en studs)
-local MIN_ZOOM = 5
+local MIN_ZOOM = 0
 local MAX_ZOOM = 20
 
 player.CameraMinZoomDistance = MIN_ZOOM
