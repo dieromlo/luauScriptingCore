@@ -1,9 +1,8 @@
 -- ============================================================
 --  CustomizePanel.lua
 --  ModuleScript | StarterPlayerScripts/modules
---  Panel de personalización: viewport 3D con encuadre
---  automático + zoom/reset/auto-rotar, lista de prendas con
---  reconciliación en vivo, highlight cruzado con el avatar.
+--  Panel de personalización: viewport 3D con inercia, zoom
+--  fluido, microinteracciones premium y layout dinámico.
 -- ============================================================
 
 local Players           = game:GetService("Players")
@@ -16,7 +15,7 @@ local SoundKit    = require(script.Parent.SoundKit)
 local MenuManager = require(script.Parent.MenuManager)
 
 local C, F_BOLD, F_NORMAL   = UIKit.C, UIKit.F_BOLD, UIKit.F_NORMAL
-local T_FAST, T_MED, T_SLOW = UIKit.T_FAST, UIKit.T_MED, UIKit.T_SLOW
+local T_SLOW                 = UIKit.T_SLOW -- mismo TweenInfo que usa SettingsPanel al cerrarse
 local ICONS                  = UIKit.ICONS
 local uiCorner, uiStroke     = UIKit.uiCorner, UIKit.uiStroke
 
@@ -27,17 +26,28 @@ local playClick       = SoundKit.PlayClick
 local playSoundBuy    = SoundKit.PlayBuy
 local playSoundRemove = SoundKit.PlayRemove
 
+-- ─── EASINGS PREMIUM (Microinteracciones y Físicas) ───────────
+local T_HOVER       = TweenInfo.new(0.25, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
+local T_PRESS       = TweenInfo.new(0.12, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
+local T_CARD_ENTER  = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local T_PANEL_IN    = TweenInfo.new(0.42, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local T_SMOOTH      = TweenInfo.new(0.35, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
+
 local CustomizePanel = {}
+local initialized = false
 
--- guiParent   → GUI compartido
--- RemoveItem  → RemoteEvent RemoveItem
--- BuyOutfit   → RemoteEvent BuyOutfit
--- showToast   → función showToast de OutfitClient
 function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
+    if initialized then
+        warn("[CustomizePanel] Init() ya fue llamado antes. Ignorando llamada duplicada.")
+        return
+    end
+    initialized = true
 
-    local CW, CH       = 1120, 610
-    local CUSTOM_HIDE  = UDim2.new(0.5, -CW/2, 1.5, 0)
-    local CUSTOM_SHOW  = UDim2.new(0.5, -CW/2, 0.5, -CH/2)
+    local CW, CH               = 1120, 610
+    local PANEL_SLIDE_DISTANCE = 40 -- desplazamiento sutil (px) para el slide de entrada
+    local CUSTOM_SHOW          = UDim2.new(0.5, -CW/2, 0.5, -CH/2)
+    local CUSTOM_HIDE          = UDim2.new(0.5, -CW/2, 0.5, -CH/2 + PANEL_SLIDE_DISTANCE)
+    local CUSTOM_CLOSE_HIDE    = UDim2.new(0.5, -CW/2, 1.5, 0) -- mismo destino que SET_HIDE del SettingsPanel
 
     local Panel = Instance.new("Frame")
     Panel.Name             = "CustomizePanel"
@@ -46,8 +56,12 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
     Panel.BackgroundColor3 = C.bgBase
     Panel.BorderSizePixel  = 0
     Panel.ZIndex           = 10
+    Panel.Visible          = false
     uiCorner(Panel, 20)
-    uiStroke(Panel, C.border, 1.5)
+
+    -- Borde principal ultra sutil (cristal oscuro)
+    local panelStroke = uiStroke(Panel, C.border, 1.5)
+    panelStroke.Transparency = 0.5
     Panel.Parent = guiParent
 
     local custTitle = Instance.new("TextLabel")
@@ -82,24 +96,31 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
     btnCustClose.ImageColor3      = C.txtSub
     btnCustClose.BorderSizePixel  = 0
     btnCustClose.ZIndex           = 12
-    uiCorner(btnCustClose, 10)
+    uiCorner(btnCustClose, 12)
     btnCustClose.Parent = Panel
 
     local closeScale = Instance.new("UIScale", btnCustClose)
     btnCustClose.MouseEnter:Connect(function()
         playHover()
-        TweenService:Create(closeScale, T_FAST, {Scale = 1.08}):Play()
-        TweenService:Create(btnCustClose, T_FAST, {BackgroundColor3 = C.bgBtnHover, ImageColor3 = C.accent, Rotation = 90}):Play()
+        TweenService:Create(closeScale, T_HOVER, {Scale = 1.08}):Play()
+        TweenService:Create(btnCustClose, T_HOVER, {BackgroundColor3 = C.bgBtnHover, ImageColor3 = C.accent, Rotation = 90}):Play()
     end)
     btnCustClose.MouseLeave:Connect(function()
-        TweenService:Create(closeScale, T_FAST, {Scale = 1}):Play()
-        TweenService:Create(btnCustClose, T_FAST, {BackgroundColor3 = C.bgBtn, ImageColor3 = C.txtSub, Rotation = 0}):Play()
+        TweenService:Create(closeScale, T_HOVER, {Scale = 1}):Play()
+        TweenService:Create(btnCustClose, T_HOVER, {BackgroundColor3 = C.bgBtn, ImageColor3 = C.txtSub, Rotation = 0}):Play()
+    end)
+    btnCustClose.MouseButton1Down:Connect(function()
+        TweenService:Create(closeScale, T_PRESS, {Scale = 0.92}):Play()
+    end)
+    btnCustClose.MouseButton1Up:Connect(function()
+        TweenService:Create(closeScale, T_PRESS, {Scale = 1.08}):Play()
     end)
 
     local custDivider = Instance.new("Frame")
     custDivider.Size             = UDim2.new(1, -64, 0, 1)
     custDivider.Position         = UDim2.new(0, 32, 0, 96)
     custDivider.BackgroundColor3 = C.border
+    custDivider.BackgroundTransparency = 0.4
     custDivider.BorderSizePixel  = 0
     custDivider.ZIndex           = 11
     custDivider.Parent           = Panel
@@ -113,12 +134,13 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
     previewViewport.ZIndex           = 11
     uiCorner(previewViewport, 18)
     local previewViewportStroke = uiStroke(previewViewport, C.border)
+    previewViewportStroke.Transparency = 0.6
     previewViewport.Parent = Panel
 
     local function pulseViewport()
-        TweenService:Create(previewViewportStroke, T_FAST, {Color = C.accent}):Play()
-        task.delay(0.18, function()
-            TweenService:Create(previewViewportStroke, T_MED, {Color = C.border}):Play()
+        TweenService:Create(previewViewportStroke, T_HOVER, {Color = C.accent, Transparency = 0.2}):Play()
+        task.delay(0.2, function()
+            TweenService:Create(previewViewportStroke, T_SMOOTH, {Color = C.border, Transparency = 0.6}):Play()
         end)
     end
 
@@ -132,28 +154,28 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
 
     local previewHint = Instance.new("TextLabel")
     previewHint.Size             = UDim2.new(1, -20, 0, 18)
-    previewHint.Position         = UDim2.new(0, 14, 0, 12)
+    previewHint.Position         = UDim2.new(0, 16, 0, 14)
     previewHint.BackgroundTransparency = 1
     previewHint.TextTransparency = 1
     previewHint.TextColor3       = C.txtMuted
     previewHint.TextSize         = 11
-    previewHint.Font             = F_NORMAL
+    previewHint.Font             = Enum.Font.GothamMedium
     previewHint.TextXAlignment   = Enum.TextXAlignment.Left
     previewHint.Text             = "↺  Arrastra para rotar"
     previewHint.ZIndex           = 13
     previewHint.Parent           = previewViewport
 
     previewViewport.MouseEnter:Connect(function()
-        TweenService:Create(previewHint, T_FAST, {TextTransparency = 0.35}):Play()
+        TweenService:Create(previewHint, T_HOVER, {TextTransparency = 0.2}):Play()
     end)
     previewViewport.MouseLeave:Connect(function()
-        TweenService:Create(previewHint, T_FAST, {TextTransparency = 1}):Play()
+        TweenService:Create(previewHint, T_HOVER, {TextTransparency = 1}):Play()
     end)
 
     local viewportControls = Instance.new("Frame")
     viewportControls.Size             = UDim2.new(0, 140, 0, 36)
     viewportControls.AnchorPoint      = Vector2.new(1, 1)
-    viewportControls.Position         = UDim2.new(1, -12, 1, -12)
+    viewportControls.Position         = UDim2.new(1, -14, 1, -14)
     viewportControls.BackgroundTransparency = 1
     viewportControls.ZIndex           = 13
     viewportControls.Parent           = previewViewport
@@ -177,6 +199,9 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         b.LayoutOrder      = order
         b.ZIndex           = 14
         uiCorner(b, 10)
+
+        local btnStroke = uiStroke(b, C.border, 1)
+        btnStroke.Transparency = 0.8
         b.Parent = viewportControls
 
         local scale = Instance.new("UIScale", b)
@@ -184,34 +209,36 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         b.MouseEnter:Connect(function()
             if not b:GetAttribute("Active") then
                 playHover()
-                TweenService:Create(scale, T_FAST, {Scale = 1.08}):Play()
-                TweenService:Create(b, T_FAST, {BackgroundColor3 = C.bgBtnHover, TextColor3 = C.txtMain}):Play()
+                TweenService:Create(scale, T_HOVER, {Scale = 1.06}):Play()
+                TweenService:Create(b, T_HOVER, {BackgroundColor3 = C.bgBtnHover, TextColor3 = C.txtMain}):Play()
+                TweenService:Create(btnStroke, T_HOVER, {Transparency = 0.4}):Play()
             end
         end)
         b.MouseLeave:Connect(function()
             if not b:GetAttribute("Active") then
-                TweenService:Create(scale, T_FAST, {Scale = 1.0}):Play()
-                TweenService:Create(b, T_FAST, {BackgroundColor3 = C.bgBtn, TextColor3 = C.txtSub}):Play()
+                TweenService:Create(scale, T_HOVER, {Scale = 1.0}):Play()
+                TweenService:Create(b, T_HOVER, {BackgroundColor3 = C.bgBtn, TextColor3 = C.txtSub}):Play()
+                TweenService:Create(btnStroke, T_HOVER, {Transparency = 0.8}):Play()
             end
         end)
         b.MouseButton1Down:Connect(function()
-            TweenService:Create(scale, T_FAST, {Scale = 0.92}):Play()
+            TweenService:Create(scale, T_PRESS, {Scale = 0.92}):Play()
         end)
         b.MouseButton1Up:Connect(function()
             playClick()
-            TweenService:Create(scale, T_FAST, {Scale = 1.08}):Play()
+            TweenService:Create(scale, T_PRESS, {Scale = 1.06}):Play()
         end)
 
-        return b, scale
+        return b, scale, btnStroke
     end
 
-    local btnZoomIn, scIn   = makeMiniBtn("+", 1)
-    local btnZoomOut, scOut = makeMiniBtn("–", 2)
-    local btnCamReset, scRst= makeMiniBtn("⟲", 3)
-    local btnAutoRot, scRot = makeMiniBtn("⟳", 4)
+    local btnZoomIn, scIn, strIn    = makeMiniBtn("+", 1)
+    local btnZoomOut, scOut, strOut = makeMiniBtn("–", 2)
+    local btnCamReset, scRst, strRst= makeMiniBtn("⟲", 3)
+    local btnAutoRot, scRot, strRot = makeMiniBtn("⟳", 4)
 
     -- ─── LISTA DE ITEMS ───────────────────────────────────────────
-    local ROW_H, ROW_GAP = 96, 12
+    local ROW_H, ROW_GAP = 96, 14
 
     local gridContainer = Instance.new("ScrollingFrame")
     gridContainer.Size                   = UDim2.new(0, 540, 0, 470)
@@ -231,12 +258,12 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
     gridPadding.Parent = gridContainer
 
     gridContainer.ScrollBarImageTransparency = 1
-    local scrollFadeTweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local hideScrollDelay = 1.2
+    local scrollFadeTweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local hideScrollDelay = 1.0
     local hideScrollTask = nil
 
     local function showScrollbar()
-        TweenService:Create(gridContainer, scrollFadeTweenInfo, {ScrollBarImageTransparency = 0}):Play()
+        TweenService:Create(gridContainer, scrollFadeTweenInfo, {ScrollBarImageTransparency = 0.2}):Play()
         if hideScrollTask then task.cancel(hideScrollTask) end
         hideScrollTask = task.delay(hideScrollDelay, function()
             TweenService:Create(gridContainer, scrollFadeTweenInfo, {ScrollBarImageTransparency = 1}):Play()
@@ -246,6 +273,7 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
     gridContainer.MouseEnter:Connect(showScrollbar)
     gridContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(showScrollbar)
 
+    -- Estado vacío (Animación de Flote contínua)
     local emptyStateContainer = Instance.new("Frame")
     emptyStateContainer.Size             = UDim2.new(1, 0, 0, 160)
     emptyStateContainer.Position         = UDim2.new(0, 0, 0, 60)
@@ -260,12 +288,17 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
     emptyIcon.BackgroundTransparency = 1
     emptyIcon.ZIndex           = 12
     uiCorner(emptyIcon, 24)
-    uiStroke(emptyIcon, C.border, 1.5)
+    local emptyStroke = uiStroke(emptyIcon, C.border, 1.5)
+    emptyStroke.Transparency = 0.5
     emptyIcon.Parent = emptyStateContainer
+
+    -- Flote suave del estado vacío para que no se sienta muerto
+    TweenService:Create(emptyIcon, TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {Position = UDim2.new(0.5, -24, 0, -5)}):Play()
 
     local emptyTitle = Instance.new("TextLabel")
     emptyTitle.Size             = UDim2.new(1, -32, 0, 22)
-    emptyTitle.Position         = UDim2.new(0, 16, 0, 64)
+    emptyTitle.Position         = UDim2.new(0, 16, 0, 68)
     emptyTitle.BackgroundTransparency = 1
     emptyTitle.TextColor3       = C.txtSub
     emptyTitle.Font             = Enum.Font.GothamMedium
@@ -276,7 +309,7 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
 
     local emptySubtitle = Instance.new("TextLabel")
     emptySubtitle.Size             = UDim2.new(1, -32, 0, 18)
-    emptySubtitle.Position         = UDim2.new(0, 16, 0, 90)
+    emptySubtitle.Position         = UDim2.new(0, 16, 0, 94)
     emptySubtitle.BackgroundTransparency = 1
     emptySubtitle.TextColor3       = C.txtMuted
     emptySubtitle.Font             = F_NORMAL
@@ -285,25 +318,29 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
     emptySubtitle.ZIndex           = 12
     emptySubtitle.Parent           = emptyStateContainer
 
-    -- ─── Preview 3D ────────────────────────────────────────────
+    -- ─── CÁMARA 3D (INTERPOLACIÓN FÍSICA) ───────────────────────
     local previewModel        = nil
     local previewBasePivot    = nil
-    local previewAngle        = 0
+
+    local targetAngle         = 0
+    local targetZoom          = 1
+
+    local currentAngle        = 0
+    local currentZoom         = 1
+
     local previewBaseDistance = 6
     local previewLookY        = 0
-    local zoomMultiplier      = 1
     local autoRotateEnabled   = true
     local isDraggingPreview   = false
     local dragStartX          = 0
-    local dragStartAngle      = 0
     local breathTime          = 0
 
-    local PREVIEW_ROT_SPEED = 0.3
-    local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.55, 1.8, 0.12
+    local PREVIEW_ROT_SPEED = 0.25
+    local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.55, 1.8, 0.15
     local FIT_PADDING   = 1.38
     local LOOK_Y_BIAS   = 0.04
-    local BREATH_AMPLITUDE = 0.035
-    local BREATH_SPEED     = 1.1
+    local BREATH_AMPLITUDE = 0.030
+    local BREATH_SPEED     = 1.0
 
     local function fitCameraToModel()
         if not previewModel then return end
@@ -315,7 +352,7 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
     end
 
     local function loadPreviewCharacter()
-        if previewModel then previewModel:Destroy() end
+        if previewModel then previewModel:Destroy() previewModel = nil end
         local char = player.Character
         if not char then return end
 
@@ -337,10 +374,36 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         clone.Parent = previewWorldModel
         previewModel = clone
 
-        zoomMultiplier = 1
+        targetZoom, currentZoom = 1, 1
+        targetAngle, currentAngle = 0, 0
         fitCameraToModel()
         previewBasePivot = previewModel:GetPivot()
         breathTime = 0
+    end
+
+    -- ─── GESTOR DE ESTADO DEL PANEL ─────────────────────────────
+    -- Única fuente de verdad sobre si el panel está realmente
+    -- abierto. Reemplaza el par de banderas isVisible/isAnimating
+    -- por un solo estado, evitando combinaciones imposibles.
+    local PANEL_STATE = { CLOSED = "closed", OPENING = "opening", OPEN = "open", CLOSING = "closing" }
+    local panelState  = PANEL_STATE.CLOSED
+    local panelTweens = {}
+
+    local function isPanelOpenOrOpening()
+        return panelState == PANEL_STATE.OPEN or panelState == PANEL_STATE.OPENING
+    end
+
+    local function cancelPanelTweens()
+        for _, tw in ipairs(panelTweens) do
+            tw:Cancel()
+        end
+        panelTweens = {}
+    end
+
+    local function trackTween(tween)
+        table.insert(panelTweens, tween)
+        tween:Play()
+        return tween
     end
 
     RunService.RenderStepped:Connect(function(dt)
@@ -349,8 +412,12 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         if not root then return end
 
         if autoRotateEnabled and not isDraggingPreview then
-            previewAngle += dt * PREVIEW_ROT_SPEED
+            targetAngle += dt * PREVIEW_ROT_SPEED
         end
+
+        -- Interpolación fluida (Inercia premium)
+        currentAngle += (targetAngle - currentAngle) * math.min(dt * 12, 1)
+        currentZoom  += (targetZoom - currentZoom) * math.min(dt * 10, 1)
 
         breathTime += dt * BREATH_SPEED
         if previewBasePivot then
@@ -358,10 +425,10 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
             previewModel:PivotTo(previewBasePivot + Vector3.new(0, breathOffset, 0))
         end
 
-        local distance   = previewBaseDistance * zoomMultiplier
+        local distance   = previewBaseDistance * currentZoom
         local lookCenter = Vector3.new(root.Position.X, previewLookY, root.Position.Z)
-        local camX       = root.Position.X + math.sin(previewAngle) * distance
-        local camZ       = root.Position.Z + math.cos(previewAngle) * distance
+        local camX       = root.Position.X + math.sin(currentAngle) * distance
+        local camZ       = root.Position.Z + math.cos(currentAngle) * distance
 
         previewCamera.CFrame = CFrame.new(Vector3.new(camX, previewLookY, camZ), lookCenter)
     end)
@@ -370,13 +437,13 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             isDraggingPreview = true
             dragStartX        = input.Position.X
-            dragStartAngle    = previewAngle
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if isDraggingPreview and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position.X - dragStartX
-            previewAngle = dragStartAngle - delta * 0.01
+            targetAngle = targetAngle - delta * 0.008
+            dragStartX  = input.Position.X
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
@@ -385,16 +452,17 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         end
     end)
 
-    btnZoomIn.MouseButton1Click:Connect(function() zoomMultiplier = math.clamp(zoomMultiplier - ZOOM_STEP, ZOOM_MIN, ZOOM_MAX) end)
-    btnZoomOut.MouseButton1Click:Connect(function() zoomMultiplier = math.clamp(zoomMultiplier + ZOOM_STEP, ZOOM_MIN, ZOOM_MAX) end)
-    btnCamReset.MouseButton1Click:Connect(function() zoomMultiplier = 1 previewAngle = 0 end)
+    btnZoomIn.MouseButton1Click:Connect(function() targetZoom = math.clamp(targetZoom - ZOOM_STEP, ZOOM_MIN, ZOOM_MAX) end)
+    btnZoomOut.MouseButton1Click:Connect(function() targetZoom = math.clamp(targetZoom + ZOOM_STEP, ZOOM_MIN, ZOOM_MAX) end)
+    btnCamReset.MouseButton1Click:Connect(function() targetZoom = 1; targetAngle = 0 end)
 
     local function refreshAutoRotButton()
         btnAutoRot:SetAttribute("Active", autoRotateEnabled)
-        TweenService:Create(btnAutoRot, T_FAST, {
+        TweenService:Create(btnAutoRot, T_HOVER, {
             BackgroundColor3 = autoRotateEnabled and C.accent or C.bgBtn,
             TextColor3       = autoRotateEnabled and C.bgBase or C.txtSub,
         }):Play()
+        TweenService:Create(strRot, T_HOVER, { Transparency = autoRotateEnabled and 1 or 0.8 }):Play()
     end
     btnAutoRot.MouseButton1Click:Connect(function()
         autoRotateEnabled = not autoRotateEnabled
@@ -438,15 +506,15 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
             local h = highlightPool[i]
             if h then
                 h.Adornee = part h.Enabled = true h.FillTransparency = 1 h.OutlineTransparency = 1
-                TweenService:Create(h, T_FAST, {FillTransparency = 0.75, OutlineTransparency = 0.15}):Play()
+                TweenService:Create(h, T_SMOOTH, {FillTransparency = 0.85, OutlineTransparency = 0.2}):Play()
             end
         end
     end
     local function hideHighlight()
         for _, h in ipairs(highlightPool) do
-            if h.Enabled then TweenService:Create(h, T_FAST, {FillTransparency = 1, OutlineTransparency = 1}):Play() end
+            if h.Enabled then TweenService:Create(h, T_SMOOTH, {FillTransparency = 1, OutlineTransparency = 1}):Play() end
         end
-        task.delay(0.15, function()
+        task.delay(0.35, function()
             for _, h in ipairs(highlightPool) do h.Enabled = false h.Adornee = nil end
         end)
     end
@@ -474,11 +542,11 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         end
     end
 
-    -- ─── Tarjeta ────────────────────────────────────────────────
+    -- ─── Tarjeta (Diseño Refinado) ────────────────────────────────
     local function buildItemCard(item, targetY, staggerDelay)
         local card = Instance.new("Frame")
         card.Size                   = UDim2.new(1, 0, 0, ROW_H)
-        card.Position               = UDim2.new(0, 0, 0, targetY + 10)
+        card.Position               = UDim2.new(0, 0, 0, targetY + 20)
         card.BackgroundColor3       = C.bgCard
         card.BackgroundTransparency = 1
         card.BorderSizePixel        = 0
@@ -487,7 +555,9 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         uiCorner(card, 14)
 
         local cardScale = Instance.new("UIScale", card)
-        local cardStroke = uiStroke(card, C.border)
+        cardScale.Scale = 0.95
+
+        local cardStroke = uiStroke(card, C.border, 1)
         cardStroke.Transparency = 1
         card.Parent = gridContainer
 
@@ -499,7 +569,7 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         img.ImageTransparency = 1
         img.Image              = item.assetId and ("rbxthumb://type=Asset&id=" .. item.assetId .. "&w=150&h=150") or ""
         img.ZIndex             = 13
-        uiCorner(img, 10)
+        uiCorner(img, 12)
         img.Parent = card
 
         local nameLbl = Instance.new("TextLabel")
@@ -509,7 +579,7 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         nameLbl.TextTransparency  = 1
         nameLbl.TextColor3        = C.txtMain
         nameLbl.Font              = Enum.Font.GothamMedium
-        nameLbl.TextSize          = 16
+        nameLbl.TextSize          = 15
         nameLbl.TextXAlignment    = Enum.TextXAlignment.Left
         nameLbl.TextTruncate      = Enum.TextTruncate.AtEnd
         nameLbl.Text              = item.name
@@ -530,85 +600,96 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         statusLbl.Parent            = card
 
         local actionBtn = Instance.new("TextButton")
-        actionBtn.Size              = UDim2.new(0, 120, 0, 40)
+        actionBtn.Size              = UDim2.new(0, 110, 0, 38)
         actionBtn.AnchorPoint       = Vector2.new(1, 0.5)
-        actionBtn.Position          = UDim2.new(1, -16, 0.5, 0)
-        local C_REMOVE_IDLE  = Color3.fromRGB(48, 48, 52)
-        local C_REMOVE_HOVER = Color3.fromRGB(65, 65, 70)
+        actionBtn.Position          = UDim2.new(1, -18, 0.5, 0)
 
-        actionBtn.BackgroundColor3  = item.owned and C_REMOVE_IDLE or C.buyGreen
+        local C_REMOVE_IDLE  = Color3.fromRGB(40, 40, 44)
+        local C_REMOVE_HOVER = Color3.fromRGB(55, 55, 60)
+        local C_BUY_IDLE     = Color3.fromRGB(47, 143, 91)
+        local C_BUY_HOVER    = Color3.fromRGB(58, 154, 103)
+
+        actionBtn.BackgroundColor3  = item.owned and C_REMOVE_IDLE or C_BUY_IDLE
         actionBtn.BackgroundTransparency = 1
         actionBtn.Text              = item.owned and "QUITAR" or "COMPRAR"
         actionBtn.TextTransparency  = 1
         actionBtn.TextColor3        = item.owned and C.txtMain or Color3.new(1, 1, 1)
-        actionBtn.Font              = F_BOLD
-        actionBtn.TextSize          = 13
+        actionBtn.Font              = Enum.Font.GothamMedium
+        actionBtn.TextSize          = 12
         actionBtn.BorderSizePixel   = 0
         actionBtn.ZIndex            = 14
         uiCorner(actionBtn, 10)
-        if item.owned then uiStroke(actionBtn, C.border) end
+
+        local actionStroke = uiStroke(actionBtn, C.border, 1)
+        actionStroke.Transparency = 1
         actionBtn.Parent = card
 
         local actionBtnScale = Instance.new("UIScale", actionBtn)
 
         task.delay(staggerDelay or 0, function()
             if not card or not card.Parent then return end
-            TweenService:Create(card, T_MED, { Position = UDim2.new(0, 0, 0, targetY), BackgroundTransparency = 0 }):Play()
-            TweenService:Create(cardStroke, T_MED, {Transparency = 0.4}):Play()
-            TweenService:Create(actionBtn, T_MED, {BackgroundTransparency = 0}):Play()
+            TweenService:Create(cardScale, T_CARD_ENTER, {Scale = 1}):Play()
+            TweenService:Create(card, T_CARD_ENTER, { Position = UDim2.new(0, 0, 0, targetY), BackgroundTransparency = 0 }):Play()
+            TweenService:Create(cardStroke, T_SMOOTH, {Transparency = 0.7}):Play()
+            TweenService:Create(actionBtn, T_SMOOTH, {BackgroundTransparency = 0}):Play()
+            if item.owned then TweenService:Create(actionStroke, T_SMOOTH, {Transparency = 0.8}):Play() end
+
             for _, d in ipairs(card:GetDescendants()) do
-                if d:IsA("TextLabel") or d:IsA("TextButton") then TweenService:Create(d, T_MED, {TextTransparency = 0}):Play()
-                elseif d:IsA("ImageLabel") then TweenService:Create(d, T_MED, {ImageTransparency = 0}):Play() end
+                if d:IsA("TextLabel") or d:IsA("TextButton") then TweenService:Create(d, T_SMOOTH, {TextTransparency = 0}):Play()
+                elseif d:IsA("ImageLabel") then TweenService:Create(d, T_SMOOTH, {ImageTransparency = 0}):Play() end
             end
         end)
 
         card.MouseEnter:Connect(function()
             playHover()
-            TweenService:Create(cardScale, T_FAST, {Scale = 1.015}):Play()
-            TweenService:Create(card, T_FAST, {BackgroundColor3 = C.bgBtnHover}):Play()
+            TweenService:Create(cardScale, T_HOVER, {Scale = 1.012}):Play()
+            TweenService:Create(card, T_HOVER, {BackgroundColor3 = C.bgBtnHover}):Play()
+            TweenService:Create(cardStroke, T_HOVER, {Transparency = 0.3}):Play()
             showHighlight(resolveHighlightTargets(item))
         end)
         card.MouseLeave:Connect(function()
-            TweenService:Create(cardScale, T_FAST, {Scale = 1.0}):Play()
-            TweenService:Create(card, T_FAST, {BackgroundColor3 = C.bgCard}):Play()
+            TweenService:Create(cardScale, T_HOVER, {Scale = 1.0}):Play()
+            TweenService:Create(card, T_HOVER, {BackgroundColor3 = C.bgCard}):Play()
+            TweenService:Create(cardStroke, T_HOVER, {Transparency = 0.7}):Play()
             hideHighlight()
         end)
 
         actionBtn.MouseEnter:Connect(function()
             playHover()
-            TweenService:Create(actionBtnScale, T_FAST, {Scale = 1.05}):Play()
-            TweenService:Create(actionBtn, T_FAST, {
-                BackgroundColor3 = item.owned and C_REMOVE_HOVER or C.buyGreenHover
+            TweenService:Create(actionBtnScale, T_HOVER, {Scale = 1.04}):Play()
+            TweenService:Create(actionBtn, T_HOVER, {
+                BackgroundColor3 = item.owned and C_REMOVE_HOVER or C_BUY_HOVER
             }):Play()
         end)
 
         actionBtn.MouseLeave:Connect(function()
-            TweenService:Create(actionBtnScale, T_FAST, {Scale = 1.0}):Play()
-            TweenService:Create(actionBtn, T_FAST, {
-                BackgroundColor3 = item.owned and C_REMOVE_IDLE or C.buyGreen
+            TweenService:Create(actionBtnScale, T_HOVER, {Scale = 1.0}):Play()
+            TweenService:Create(actionBtn, T_HOVER, {
+                BackgroundColor3 = item.owned and C_REMOVE_IDLE or C_BUY_IDLE
             }):Play()
         end)
 
         actionBtn.MouseButton1Down:Connect(function()
-            TweenService:Create(actionBtnScale, T_FAST, {Scale = 0.94}):Play()
+            TweenService:Create(actionBtnScale, T_PRESS, {Scale = 0.94}):Play()
         end)
 
         actionBtn.MouseButton1Click:Connect(function()
             if not actionBtn.Active then return end
             actionBtn.Active = false
-            TweenService:Create(actionBtnScale, T_FAST, {Scale = 1.05}):Play()
+            TweenService:Create(actionBtnScale, T_PRESS, {Scale = 1.04}):Play()
 
             if item.owned then
                 playSoundRemove()
 
-                TweenService:Create(cardScale, T_FAST, {Scale = 0.85}):Play()
-                TweenService:Create(card, T_FAST, {BackgroundTransparency = 1}):Play()
-                TweenService:Create(cardStroke, T_FAST, {Transparency = 1}):Play()
-                TweenService:Create(actionBtn, T_FAST, {BackgroundTransparency = 1}):Play()
+                TweenService:Create(cardScale, T_HOVER, {Scale = 0.88}):Play()
+                TweenService:Create(card, T_HOVER, {BackgroundTransparency = 1}):Play()
+                TweenService:Create(cardStroke, T_HOVER, {Transparency = 1}):Play()
+                TweenService:Create(actionBtn, T_HOVER, {BackgroundTransparency = 1}):Play()
+                TweenService:Create(actionStroke, T_HOVER, {Transparency = 1}):Play()
 
                 for _, d in ipairs(card:GetDescendants()) do
-                    if d:IsA("TextLabel") or d:IsA("TextButton") then TweenService:Create(d, T_FAST, {TextTransparency = 1}):Play()
-                    elseif d:IsA("ImageLabel") then TweenService:Create(d, T_FAST, {ImageTransparency = 1}):Play() end
+                    if d:IsA("TextLabel") or d:IsA("TextButton") then TweenService:Create(d, T_HOVER, {TextTransparency = 1}):Play()
+                    elseif d:IsA("ImageLabel") then TweenService:Create(d, T_HOVER, {ImageTransparency = 1}):Play() end
                 end
 
                 if RemoveItem then RemoveItem:FireServer(item.itemType, item.name) end
@@ -645,14 +726,14 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         for key, card in pairs(activeCards) do
             if not newItemsByKey[key] then
                 local cs = card:FindFirstChild("UIScale")
-                if cs then TweenService:Create(cs, T_FAST, {Scale = 0.8}):Play() end
-                TweenService:Create(card, T_FAST, { BackgroundTransparency = 1 }):Play()
+                if cs then TweenService:Create(cs, T_SMOOTH, {Scale = 0.85}):Play() end
+                TweenService:Create(card, T_SMOOTH, { BackgroundTransparency = 1 }):Play()
                 for _, d in ipairs(card:GetDescendants()) do
-                    if d:IsA("TextLabel") or d:IsA("TextButton") then TweenService:Create(d, T_FAST, {TextTransparency = 1}):Play()
-                    elseif d:IsA("ImageLabel") then TweenService:Create(d, T_FAST, {ImageTransparency = 1}):Play() end
+                    if d:IsA("TextLabel") or d:IsA("TextButton") then TweenService:Create(d, T_SMOOTH, {TextTransparency = 1}):Play()
+                    elseif d:IsA("ImageLabel") then TweenService:Create(d, T_SMOOTH, {ImageTransparency = 1}):Play() end
                 end
                 local cardRef = card
-                task.delay(0.2, function() if cardRef then cardRef:Destroy() end end)
+                task.delay(0.35, function() if cardRef then cardRef:Destroy() end end)
                 activeCards[key] = nil
             end
         end
@@ -665,11 +746,11 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
             if existing then
                 if existing:GetAttribute("BaseY") ~= targetY then
                     existing:SetAttribute("BaseY", targetY)
-                    TweenService:Create(existing, T_MED, {Position = UDim2.new(0, 0, 0, targetY)}):Play()
+                    TweenService:Create(existing, T_SMOOTH, {Position = UDim2.new(0, 0, 0, targetY)}):Play()
                 end
             else
                 staggerIndex += 1
-                activeCards[key] = buildItemCard(newItemsByKey[key], targetY, (staggerIndex - 1) * 0.03)
+                activeCards[key] = buildItemCard(newItemsByKey[key], targetY, (staggerIndex - 1) * 0.04)
             end
         end
 
@@ -677,44 +758,116 @@ function CustomizePanel.Init(guiParent, RemoveItem, BuyOutfit, showToast)
         gridContainer.CanvasSize = UDim2.new(0, 0, 0, #orderedKeys > 0 and (#orderedKeys * (ROW_H + ROW_GAP)) or 0)
     end
 
-    -- ─── Registro en MenuManager ─────────────────────────────────
-    MenuManager.Register("Customize",
-        function()
-            loadPreviewCharacter()
-            reconcileItemsGrid()
-            Panel.Position = CUSTOM_SHOW
-            TweenService:Create(Panel, T_MED, {Position = CUSTOM_SHOW}):Play()
-        end,
-        function()
-            TweenService:Create(Panel, T_SLOW, {Position = CUSTOM_HIDE}):Play()
-        end
-    )
+    -- ─── Apertura / cierre con máquina de estados ───────────────
+    local function openPanelVisuals()
+        if isPanelOpenOrOpening() then return end
+        cancelPanelTweens()
+        panelState = PANEL_STATE.OPENING
+
+        Panel.Visible = true
+        Panel.Active  = true
+
+        loadPreviewCharacter()
+        reconcileItemsGrid()
+        Panel.Position = CUSTOM_HIDE -- ancla de partida consistente antes de animar
+
+        local tw = trackTween(TweenService:Create(Panel, T_PANEL_IN, {Position = CUSTOM_SHOW}))
+        trackTween(TweenService:Create(panelStroke, T_PANEL_IN, {Transparency = 0.5}))
+
+        tw.Completed:Connect(function(playbackState)
+            if playbackState == Enum.PlaybackState.Completed and panelState == PANEL_STATE.OPENING then
+                panelState = PANEL_STATE.OPEN
+            end
+        end)
+    end
+
+    local function closePanelVisuals()
+        if panelState == PANEL_STATE.CLOSED or panelState == PANEL_STATE.CLOSING then return end
+        cancelPanelTweens()
+        panelState = PANEL_STATE.CLOSING
+        Panel.Active = false -- deja de ser interactuable de inmediato, no al terminar la animación
+
+        local tw = trackTween(TweenService:Create(Panel, T_SLOW, {Position = CUSTOM_CLOSE_HIDE}))
+        trackTween(TweenService:Create(panelStroke, T_SLOW, {Transparency = 1}))
+
+        tw.Completed:Connect(function(playbackState)
+            if playbackState == Enum.PlaybackState.Completed and panelState == PANEL_STATE.CLOSING then
+                panelState = PANEL_STATE.CLOSED
+                Panel.Position = CUSTOM_HIDE
+                Panel.Visible  = false
+
+                -- Libera el clon del avatar: no tiene sentido mantenerlo
+                -- en memoria mientras el panel está cerrado.
+                if previewModel then
+                    previewModel:Destroy()
+                    previewModel = nil
+                end
+            end
+        end)
+    end
+
+    MenuManager.Register("Customize", openPanelVisuals, closePanelVisuals)
 
     btnCustClose.MouseButton1Click:Connect(function()
         playClick()
         MenuManager.CloseAll()
     end)
 
-    -- ─── Detección en tiempo real ────────────────────────────────
-    local function watchCharacterForCustomize(character)
-        character.ChildAdded:Connect(function(child)
-            if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
-                task.wait(0.1)
-                if MenuManager.GetActive() == "Customize" then reconcileItemsGrid() pulseViewport() end
-            end
-        end)
-        character.ChildRemoved:Connect(function(child)
-            if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
-                if MenuManager.GetActive() == "Customize" then reconcileItemsGrid() end
+    -- ─── Detección en tiempo real con debounce ──────────────────
+    -- Varios ChildAdded/ChildRemoved pueden llegar en ráfaga (p.ej.
+    -- al cambiar camisa+pantalón a la vez) y no necesariamente en
+    -- el mismo frame. En vez de reconciliar en cada evento, se
+    -- reprograma un único reconcile cada vez que llega un evento
+    -- nuevo, y solo se ejecuta cuando la ráfaga se detiene.
+    local RECONCILE_DEBOUNCE_TIME = 0.15
+    local reconcileDebounceThread = nil
+    local pendingPulse = false
+
+    local function requestReconcile(withPulse)
+        if withPulse then pendingPulse = true end
+        if reconcileDebounceThread then
+            task.cancel(reconcileDebounceThread)
+        end
+        reconcileDebounceThread = task.delay(RECONCILE_DEBOUNCE_TIME, function()
+            reconcileDebounceThread = nil
+            local shouldPulse = pendingPulse
+            pendingPulse = false
+            if isPanelOpenOrOpening() then
+                reconcileItemsGrid()
+                if shouldPulse then pulseViewport() end
             end
         end)
     end
 
+    local function watchCharacterForCustomize(character)
+        character.ChildAdded:Connect(function(child)
+            if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
+                requestReconcile(true)
+            end
+        end)
+        character.ChildRemoved:Connect(function(child)
+            if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
+                requestReconcile(false)
+            end
+        end)
+    end
+
+    -- Contador de "generación" de personaje: si el jugador reaparece
+    -- dos veces muy rápido, solo la carga del respawn más reciente
+    -- debe ejecutarse.
+    local characterGeneration = 0
+
     if player.Character then watchCharacterForCustomize(player.Character) end
     player.CharacterAdded:Connect(function(char)
+        characterGeneration += 1
+        local myGeneration = characterGeneration
+
         watchCharacterForCustomize(char)
         task.wait(0.5)
-        if MenuManager.GetActive() == "Customize" then loadPreviewCharacter() end
+
+        if myGeneration == characterGeneration and isPanelOpenOrOpening() then
+            loadPreviewCharacter()
+        end
     end)
 end
 

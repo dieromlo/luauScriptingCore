@@ -142,6 +142,9 @@ SettingsPanel.Init(GUI)
 local OutfitViewerPanel = require(script.Parent.modules.OutfitViewerPanel)
 OutfitViewerPanel.Init(GUI, TryOnOutfit, BuyOutfit, showToast)
 
+local MannequinInteraction = require(script.Parent.modules.MannequinInteraction)
+MannequinInteraction.Init()
+
 -- ══════════════════════════════════════════════════════════════
 --  [MODAL 3] CUSTOMIZE PANEL
 -- ══════════════════════════════════════════════════════════════
