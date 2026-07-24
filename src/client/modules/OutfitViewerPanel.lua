@@ -203,17 +203,6 @@ function OutfitViewerPanel.Init(guiParent, tryOnRemote, buyRemote, showToastFn)
         if showToastFn then showToastFn("Abriendo tienda...", "info", 2.5) end
     end)
 
-    local MannequinInteraction = require(script.Parent.MannequinInteraction)
-    MannequinInteraction.OnInteract(function(mannequin, player)
-    MenuManager.Open("Outfit", {
-        id          = mannequin:GetAttribute("OutfitId"),
-        name        = mannequin:GetAttribute("OutfitName"),
-        description = mannequin:GetAttribute("OutfitDescription"),
-        shirt       = mannequin:GetAttribute("ShirtId"),
-        pants       = mannequin:GetAttribute("PantsId"),
-    })
-end)
-
 end
 
 return OutfitViewerPanel

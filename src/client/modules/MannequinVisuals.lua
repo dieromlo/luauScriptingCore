@@ -21,9 +21,6 @@ local FLOAT_RETURN = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirect
 local MannequinVisuals = {}
 MannequinVisuals.__index = MannequinVisuals
 
--- root: se guarda como campo público (self.root) porque el
--- orquestador necesita leer su posición cada frame para calcular
--- distancia/alineación, sin tener que volver a buscarla.
 function MannequinVisuals.new(model, root)
     local self = setmetatable({}, MannequinVisuals)
 
@@ -33,7 +30,6 @@ function MannequinVisuals.new(model, root)
     self.floatTween = nil
     self.focused    = false
 
-    -- ─── Contorno ────────────────────────────────────────────
     local highlight = Instance.new("Highlight")
     highlight.FillColor           = C.accent
     highlight.FillTransparency    = 1
@@ -44,7 +40,6 @@ function MannequinVisuals.new(model, root)
     highlight.Parent              = model
     self.highlight = highlight
 
-    -- ─── Tarjeta de interacción ─────────────────────────────
     local billboard = Instance.new("BillboardGui")
     billboard.Name       = "InteractionCard"
     billboard.Size        = UDim2.new(0, 190, 0, 64)
@@ -151,8 +146,6 @@ function MannequinVisuals:Unfocus()
     if not self.focused then return end
     self.focused = false
 
-    -- Cancela el loop infinito y regresa suavemente a la pose
-    -- base, desde donde sea que esté en ese instante — sin salto.
     if self.floatTween then self.floatTween:Cancel() end
     self.floatTween = TweenService:Create(self.model, FLOAT_RETURN, {WorldPivot = self.basePivot})
     self.floatTween:Play()

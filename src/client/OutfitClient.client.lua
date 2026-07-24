@@ -144,6 +144,15 @@ OutfitViewerPanel.Init(GUI, TryOnOutfit, BuyOutfit, showToast)
 
 local MannequinInteraction = require(script.Parent.modules.MannequinInteraction)
 MannequinInteraction.Init()
+MannequinInteraction.OnInteract(function(mannequin, player)
+    MenuManager.Open("Outfit", {
+        id          = mannequin:GetAttribute("OutfitId"),
+        name        = mannequin:GetAttribute("OutfitName"),
+        description = mannequin:GetAttribute("OutfitDescription"),
+        shirt       = mannequin:GetAttribute("ShirtId"),
+        pants       = mannequin:GetAttribute("PantsId"),
+    })
+end)
 
 -- ══════════════════════════════════════════════════════════════
 --  [MODAL 3] CUSTOMIZE PANEL
