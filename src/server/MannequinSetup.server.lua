@@ -7,6 +7,9 @@
 
 local ServerStorage     = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
+
+local MANNEQUIN_TAG = "Mannequin"
 
 -- Esperar a que OutfitData esté disponible (Rojo puede tardar un frame)
 local OutfitSystem = ReplicatedStorage:WaitForChild("OutfitSystem", 15)
@@ -173,23 +176,13 @@ local function applyClothing(model, outfit)
 end
 
 -- ----------------------------------------------------------------
--- Agregar ProximityPrompt al HumanoidRootPart del maniquí
+-- Etiquetar el maniquí para que el cliente lo detecte vía
+-- CollectionService — ya no usamos ProximityPrompt, el cliente
+-- decide él mismo (cercanía + hacia dónde mira la cámara)
+-- cuándo un maniquí se convierte en el objetivo activo.
 -- ----------------------------------------------------------------
-local function addPrompt(model, outfit)
-    local root = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart")
-    if not root then
-        warn("[MannequinSetup] Sin PrimaryPart en: " .. model.Name)
-        return
-    end
-
-    local prompt                  = Instance.new("ProximityPrompt")
-    prompt.ActionText             = "Ver Outfit"
-    prompt.ObjectText             = outfit.name
-    prompt.HoldDuration           = 0
-    prompt.MaxActivationDistance  = 12
-    prompt.KeyboardKeyCode        = Enum.KeyCode.E
-    prompt.Style                  = Enum.ProximityPromptStyle.Custom
-    prompt.Parent                 = root
+local function tagMannequin(model)
+    CollectionService:AddTag(model, MANNEQUIN_TAG)
 end
 
 -- ----------------------------------------------------------------
@@ -234,7 +227,7 @@ local function setupAllMannequins()
         anchorAllParts(mannequin)
         makeHeadless(mannequin)
         applyClothing(mannequin, outfit)
-        addPrompt(mannequin, outfit)
+        tagMannequin(mannequin)
 
         mannequin.Parent = folder
         print("[MannequinSetup] ✅ " .. outfit.name)

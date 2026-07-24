@@ -204,7 +204,7 @@ function OutfitViewerPanel.Init(guiParent, tryOnRemote, buyRemote, showToastFn)
     end)
 
     local MannequinInteraction = require(script.Parent.MannequinInteraction)
-MannequinInteraction.OnInteract(function(mannequin, player)
+    MannequinInteraction.OnInteract(function(mannequin, player)
     MenuManager.Open("Outfit", {
         id          = mannequin:GetAttribute("OutfitId"),
         name        = mannequin:GetAttribute("OutfitName"),
