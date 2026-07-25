@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local OutfitSystem  = ReplicatedStorage:WaitForChild("OutfitSystem", 15)
 local OutfitData    = require(OutfitSystem:WaitForChild("OutfitData", 10))
+local OutfitResolver = require(OutfitSystem:WaitForChild("OutfitResolver", 10))
 local RemoteEvents  = OutfitSystem:WaitForChild("RemoteEvents", 10)
 
 -- WaitForChild en los RemoteEvents para respetar el tiempo de replicación de Rojo
@@ -67,7 +68,10 @@ Players.PlayerRemoving:Connect(function(player)
     originalDescriptions[player] = nil
 end)
 
--- ─── VESTIR ────────────────────────────────────────────────────
+-- ─── VESTIR (Try On) ─────────────────────────────────────────
+-- Aplica el outfit completo sobre el jugador con el mismo
+-- OutfitResolver que usa MannequinSetup — por diseño, el
+-- jugador y el maniquí nunca pueden verse distinto.
 TryOnOutfit.OnServerEvent:Connect(function(player, outfitId)
     if typeof(outfitId) ~= "number" then return end
     local char = player.Character
@@ -81,26 +85,27 @@ TryOnOutfit.OnServerEvent:Connect(function(player, outfitId)
         return
     end
 
-    -- Eliminar ropa actual
-    for _, child in ipairs(char:GetChildren()) do
-        if child:IsA("Shirt") or child:IsA("Pants") then child:Destroy() end
+    -- La apariencia original del jugador es la base: el outfit
+    -- solo sobreescribe las categorías que él mismo define.
+    local baseDescription = originalDescriptions[player]
+    local description = OutfitResolver.Resolve(outfit, baseDescription)
+
+    local ok, err = pcall(function()
+        hum:ApplyDescription(description)
+    end)
+
+    if not ok then
+        warn("[AvatarHandler] Error al aplicar outfit a " .. player.Name .. ": " .. tostring(err))
+        return
     end
 
-    local sid = outfit.items and outfit.items.shirt or 0
-    local pid = outfit.items and outfit.items.pants or 0
-
-    if sid ~= 0 then
-        local shirt = Instance.new("Shirt")
-        shirt.ShirtTemplate = "rbxassetid://" .. tostring(sid)
-        shirt:SetAttribute("FromOutfit", true)
-        shirt.Parent = char
-    end
-    if pid ~= 0 then
-        local pants = Instance.new("Pants")
-        pants.PantsTemplate = "rbxassetid://" .. tostring(pid)
-        pants:SetAttribute("FromOutfit", true)
-        pants.Parent = char
-    end
+    -- Marcar las prendas resultantes como "probadas, no
+    -- compradas" — CustomizePanel usa este atributo para
+    -- decidir entre QUITAR y COMPRAR en cada tarjeta.
+    local shirt = char:FindFirstChildOfClass("Shirt")
+    if shirt then shirt:SetAttribute("FromOutfit", true) end
+    local pants = char:FindFirstChildOfClass("Pants")
+    if pants then pants:SetAttribute("FromOutfit", true) end
 
     print("[AvatarHandler] ✅ " .. player.Name .. " → " .. outfit.name)
 end)

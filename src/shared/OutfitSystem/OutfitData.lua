@@ -11,11 +11,11 @@ OutfitData.Outfits = {
     {
         id          = 1,
         name        = "Dark Circuit", -- Nombre del Outfit
-        description = "Cyberpunk underground. Hecha para los que no duermen.", -- Descripción del outfit
-        items = {
-            shirt  = 382537085,  -- Reemplazar con Asset ID real
-            pants  = 382538087,  -- Reemplazar con Asset ID real
-        },
+        description = ".", -- Descripción del outfit
+        pieces = {
+            { type = "Shirt", assetId = 382537085 },
+            { type = "Pants", assetId = 382538087 },
+    },
         thumbnail = "rbxassetid://0",
     },
 
@@ -23,10 +23,7 @@ OutfitData.Outfits = {
         id          = 2,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        },
+        pieces = {},
         thumbnail = "rbxassetid://0",
     },
 
@@ -34,10 +31,7 @@ OutfitData.Outfits = {
         id          = 3,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        },
+        pieces = {},
         thumbnail = "rbxassetid://0",
     },
 
@@ -45,10 +39,7 @@ OutfitData.Outfits = {
         id          = 4,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -56,10 +47,7 @@ OutfitData.Outfits = {
         id          = 5,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        },
+        pieces = {},
         thumbnail = "rbxassetid://0",
     }, 
 
@@ -67,10 +55,7 @@ OutfitData.Outfits = {
         id          = 6,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -78,10 +63,7 @@ OutfitData.Outfits = {
         id          = 7,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -89,10 +71,7 @@ OutfitData.Outfits = {
         id          = 8,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -100,10 +79,7 @@ OutfitData.Outfits = {
         id          = 9,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -111,10 +87,7 @@ OutfitData.Outfits = {
         id          = 10,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -122,10 +95,7 @@ OutfitData.Outfits = {
         id          = 11,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -133,10 +103,7 @@ OutfitData.Outfits = {
         id          = 12,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -144,10 +111,7 @@ OutfitData.Outfits = {
         id          = 13,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -155,10 +119,7 @@ OutfitData.Outfits = {
         id          = 14,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -166,10 +127,7 @@ OutfitData.Outfits = {
         id          = 15,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -177,10 +135,7 @@ OutfitData.Outfits = {
         id          = 16,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -188,10 +143,7 @@ OutfitData.Outfits = {
         id          = 17,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -199,10 +151,7 @@ OutfitData.Outfits = {
         id          = 18,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -210,10 +159,7 @@ OutfitData.Outfits = {
         id          = 19,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -221,10 +167,7 @@ OutfitData.Outfits = {
         id          = 20,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },   
     
@@ -232,10 +175,7 @@ OutfitData.Outfits = {
         id          = 21,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -243,10 +183,7 @@ OutfitData.Outfits = {
         id          = 22,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -254,10 +191,7 @@ OutfitData.Outfits = {
         id          = 23,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -265,10 +199,7 @@ OutfitData.Outfits = {
         id          = 24,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -276,10 +207,7 @@ OutfitData.Outfits = {
         id          = 25,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -287,10 +215,7 @@ OutfitData.Outfits = {
         id          = 26,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -298,10 +223,7 @@ OutfitData.Outfits = {
         id          = 27,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -309,10 +231,7 @@ OutfitData.Outfits = {
         id          = 28,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -320,10 +239,7 @@ OutfitData.Outfits = {
         id          = 29,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -331,10 +247,7 @@ OutfitData.Outfits = {
         id          = 30,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -342,10 +255,7 @@ OutfitData.Outfits = {
         id          = 31,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -353,10 +263,7 @@ OutfitData.Outfits = {
         id          = 32,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -364,10 +271,7 @@ OutfitData.Outfits = {
         id          = 33,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -375,10 +279,7 @@ OutfitData.Outfits = {
         id          = 34,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -386,10 +287,7 @@ OutfitData.Outfits = {
         id          = 35,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -397,10 +295,7 @@ OutfitData.Outfits = {
         id          = 36,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -408,10 +303,7 @@ OutfitData.Outfits = {
         id          = 37,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -419,10 +311,7 @@ OutfitData.Outfits = {
         id          = 38,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -430,10 +319,7 @@ OutfitData.Outfits = {
         id          = 39,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -441,10 +327,7 @@ OutfitData.Outfits = {
         id          = 40,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -452,10 +335,7 @@ OutfitData.Outfits = {
         id          = 41,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -463,10 +343,7 @@ OutfitData.Outfits = {
         id          = 42,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -474,10 +351,7 @@ OutfitData.Outfits = {
         id          = 43,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -485,10 +359,7 @@ OutfitData.Outfits = {
         id          = 44,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -496,10 +367,7 @@ OutfitData.Outfits = {
         id          = 45,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -507,10 +375,7 @@ OutfitData.Outfits = {
         id          = 46,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -518,10 +383,7 @@ OutfitData.Outfits = {
         id          = 47,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -529,10 +391,7 @@ OutfitData.Outfits = {
         id          = 48,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -540,10 +399,7 @@ OutfitData.Outfits = {
         id          = 49,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -551,10 +407,7 @@ OutfitData.Outfits = {
         id          = 50,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -562,10 +415,7 @@ OutfitData.Outfits = {
         id          = 51,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -573,10 +423,7 @@ OutfitData.Outfits = {
         id          = 52,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -584,10 +431,7 @@ OutfitData.Outfits = {
         id          = 53,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -595,10 +439,7 @@ OutfitData.Outfits = {
         id          = 54,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -606,10 +447,7 @@ OutfitData.Outfits = {
         id          = 55,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -617,10 +455,7 @@ OutfitData.Outfits = {
         id          = 56,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -628,10 +463,7 @@ OutfitData.Outfits = {
         id          = 57,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -639,10 +471,7 @@ OutfitData.Outfits = {
         id          = 58,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -650,10 +479,7 @@ OutfitData.Outfits = {
         id          = 59,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -661,10 +487,7 @@ OutfitData.Outfits = {
         id          = 60,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -672,10 +495,7 @@ OutfitData.Outfits = {
         id          = 61,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 
@@ -683,10 +503,7 @@ OutfitData.Outfits = {
         id          = 62,
         name        = "infected memories",
         description = ".",
-        items = {
-            shirt  = 0,
-            pants  = 0,
-        }, 
+        pieces = {}, 
         thumbnail = "rbxassetid://0",
     },
 

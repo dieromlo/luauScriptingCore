@@ -1,28 +1,30 @@
 -- ============================================================
 --  MannequinSetup.server.lua
 --  Script | ServerScriptService
---  Clona MannequinTemplate por cada outfit y lo coloca en mapa.
---  SERVIDOR PURO: sin PlayerGui, sin LocalPlayer, sin GUI.
+-- ------------------------------------------------------------
+--  RESPONSABILIDAD
+--  Clonar MannequinTemplate por cada outfit, posicionarlo sobre
+--  su pedestal, y aplicarle el outfit vía OutfitResolver — el
+--  mismo mecanismo que usa el Try On del jugador.
 -- ============================================================
 
-local ServerStorage     = game:GetService("ServerStorage")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CollectionService = game:GetService("CollectionService")
+local ServerStorage      = game:GetService("ServerStorage")
+local ReplicatedStorage  = game:GetService("ReplicatedStorage")
+local CollectionService  = game:GetService("CollectionService")
 
+-- Debe coincidir EXACTAMENTE con el tag usado en MannequinInteraction.lua
 local MANNEQUIN_TAG = "Mannequin"
 
--- Esperar a que OutfitData esté disponible (Rojo puede tardar un frame)
 local OutfitSystem = ReplicatedStorage:WaitForChild("OutfitSystem", 15)
 if not OutfitSystem then
     error("[MannequinSetup] ❌ OutfitSystem no encontrado en ReplicatedStorage.")
 end
 
-local OutfitData = require(OutfitSystem:WaitForChild("OutfitData", 10))
+local OutfitData     = require(OutfitSystem:WaitForChild("OutfitData", 10))
+local OutfitResolver = require(OutfitSystem:WaitForChild("OutfitResolver", 10))
 
 -- ----------------------------------------------------------------
 -- POSICIONES EN EL MAPA
--- Ajusta X, Y, Z según los pedestales que ya tienes en tu mapa.
--- El +5 en Y es para que el maniquí quede parado encima del pedestal.
 -- ----------------------------------------------------------------
 local MANNEQUIN_CFRAMES = {
 
@@ -125,20 +127,15 @@ local MANNEQUIN_CFRAMES = {
 }
 
 -- ----------------------------------------------------------------
--- Anclar y quitar colisión a todas las partes del maniquí
--- ----------------------------------------------------------------
 local function anchorAllParts(model)
     for _, part in ipairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
-            part.Anchored    = true
-            part.CanCollide  = false
+            part.Anchored   = true
+            part.CanCollide = false
         end
     end
 end
 
--- ----------------------------------------------------------------
--- Headless: cabeza invisible + borrar decals de la cara
--- ----------------------------------------------------------------
 local function makeHeadless(model)
     local head = model:FindFirstChild("Head")
     if not head then return end
@@ -148,61 +145,49 @@ local function makeHeadless(model)
     end
 end
 
--- ----------------------------------------------------------------
--- Aplicar camisa y pantalón al maniquí
--- ----------------------------------------------------------------
-local function applyClothing(model, outfit)
-    -- Limpiar ropa previa
-    for _, child in ipairs(model:GetDescendants()) do
-        if child:IsA("Shirt") or child:IsA("Pants") then
-            child:Destroy()
-        end
+-- Aplica el outfit al maniquí vía OutfitResolver + ApplyDescription
+-- — el mismo mecanismo que usa AvatarHandler para el jugador.
+local function applyOutfitAppearance(model, outfit)
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        warn("[MannequinSetup] Sin Humanoid en: " .. model.Name .. ". No se puede aplicar el outfit.")
+        return
     end
 
-    local sid = outfit.items and outfit.items.shirt or 0
-    local pid = outfit.items and outfit.items.pants or 0
+    -- La apariencia original de la plantilla es la base: el
+    -- outfit solo sobreescribe lo que él mismo define.
+    local ok, baseDescription = pcall(function()
+        return humanoid:GetAppliedDescription()
+    end)
 
-    if sid ~= 0 then
-        local shirt = Instance.new("Shirt")
-        shirt.ShirtTemplate = "rbxassetid://" .. tostring(sid)
-        shirt.Parent = model
-    end
+    local description = OutfitResolver.Resolve(outfit, ok and baseDescription or nil)
 
-    if pid ~= 0 then
-        local pants = Instance.new("Pants")
-        pants.PantsTemplate = "rbxassetid://" .. tostring(pid)
-        pants.Parent = model
+    local applied, err = pcall(function()
+        humanoid:ApplyDescription(description)
+    end)
+    if not applied then
+        warn("[MannequinSetup] Error aplicando outfit a " .. model.Name .. ": " .. tostring(err))
     end
 end
 
--- ----------------------------------------------------------------
--- Etiquetar el maniquí para que el cliente lo detecte vía
--- CollectionService — ya no usamos ProximityPrompt, el cliente
--- decide él mismo (cercanía + hacia dónde mira la cámara)
--- cuándo un maniquí se convierte en el objetivo activo.
--- ----------------------------------------------------------------
 local function tagMannequin(model)
     CollectionService:AddTag(model, MANNEQUIN_TAG)
 end
 
 -- ----------------------------------------------------------------
--- FUNCIÓN PRINCIPAL
--- ----------------------------------------------------------------
 local function setupAllMannequins()
     local template = ServerStorage:FindFirstChild("MannequinTemplate")
     if not template then
         warn("[MannequinSetup] ❌ 'MannequinTemplate' no encontrado en ServerStorage.")
-        warn("[MannequinSetup]    Crea el rig R15 en Studio y muévelo a ServerStorage.")
         return
     end
 
-    -- Limpiar maniquíes anteriores si el script se recarga
     local existing = workspace:FindFirstChild("Mannequins")
     if existing then existing:Destroy() end
 
-    local folder        = Instance.new("Folder")
-    folder.Name         = "Mannequins"
-    folder.Parent       = workspace
+    local folder    = Instance.new("Folder")
+    folder.Name     = "Mannequins"
+    folder.Parent   = workspace
 
     for index, outfit in ipairs(OutfitData.Outfits) do
         local targetCF = MANNEQUIN_CFRAMES[index]
@@ -213,20 +198,27 @@ local function setupAllMannequins()
             continue
         end
 
-        local mannequin      = template:Clone()
-        mannequin.Name       = "Mannequin_" .. outfit.id
+        local mannequin = template:Clone()
+        mannequin.Name  = "Mannequin_" .. outfit.id
 
-        -- Guardar datos como atributos (el cliente los leerá desde el ProximityPrompt)
-        mannequin:SetAttribute("OutfitId",          outfit.id)
-        mannequin:SetAttribute("OutfitName",         outfit.name)
-        mannequin:SetAttribute("OutfitDescription",  outfit.description)
-        mannequin:SetAttribute("ShirtId",            (outfit.items and outfit.items.shirt) or 0)
-        mannequin:SetAttribute("PantsId",            (outfit.items and outfit.items.pants) or 0)
+        local shirtPiece = OutfitResolver.FindPiece(outfit, "Shirt")
+        local pantsPiece = OutfitResolver.FindPiece(outfit, "Pants")
 
-        mannequin:SetPrimaryPartCFrame(targetCF)
+        mannequin:SetAttribute("OutfitId",         outfit.id)
+        mannequin:SetAttribute("OutfitName",        outfit.name)
+        mannequin:SetAttribute("OutfitDescription", outfit.description)
+        mannequin:SetAttribute("ShirtId",           shirtPiece and shirtPiece.assetId or 0)
+        mannequin:SetAttribute("PantsId",           pantsPiece and pantsPiece.assetId or 0)
+
+        -- Orden importante: apariencia → anclar (por si la
+        -- descripción introdujo partes nuevas) → headless (para
+        -- que siempre gane sobre cualquier cara que la
+        -- descripción haya puesto) → posición (por si el cambio
+        -- de apariencia afectó la geometría) → tag.
+        applyOutfitAppearance(mannequin, outfit)
         anchorAllParts(mannequin)
         makeHeadless(mannequin)
-        applyClothing(mannequin, outfit)
+        mannequin:SetPrimaryPartCFrame(targetCF)
         tagMannequin(mannequin)
 
         mannequin.Parent = folder

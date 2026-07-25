@@ -142,6 +142,10 @@ SettingsPanel.Init(GUI)
 local OutfitViewerPanel = require(script.Parent.modules.OutfitViewerPanel)
 OutfitViewerPanel.Init(GUI, TryOnOutfit, BuyOutfit, showToast)
 
+
+local OutfitService = require(script.Parent.modules.OutfitService)
+OutfitService.Init({ tryOn = TryOnOutfit, buy = BuyOutfit })
+
 local MannequinInteraction = require(script.Parent.modules.MannequinInteraction)
 MannequinInteraction.Init()
 MannequinInteraction.OnInteract(function(mannequin, player)
