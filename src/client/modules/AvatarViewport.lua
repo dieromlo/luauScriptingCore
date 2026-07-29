@@ -6,24 +6,18 @@
 --  Componente de vista previa 3D de un avatar: encuadre
 --  automático, rotación automática + arrastre manual, zoom, y
 --  controles mini (+/-/reset/auto-rotar). Reutilizable por
---  cualquier panel que necesite mostrar un avatar girando — hoy
---  lo usa OutfitViewerPanel; CustomizePanel podría migrar a este
---  mismo componente en el futuro sin que eso rompa nada hoy.
+--  cualquier panel que necesite mostrar un avatar girando.
+--
+--  DEPENDENCIAS
+--  UIKit.lua, SoundKit.lua
 --
 --  EXPONE
---  AvatarViewport.new(container, config?) → instancia
---    container: un Frame ya existente donde se monta el
---    ViewportFrame (ocupa el tamaño completo de container).
---
+--  AvatarViewport.new(container, config?) -> instancia
 --  instancia:ShowDescription(humanoidDescription)
---    Construye un avatar directamente desde una
---    HumanoidDescription vía Players:CreateHumanoidModelFrom-
---    Description — sin necesitar ningún Character existente.
 --  instancia:ShowCharacter(character)
---    Alternativa: clona un Character ya existente.
---  instancia:Clear()          -- quita el modelo actual
---  instancia:SetActive(bool)  -- pausa el RenderStepped oculto
---  instancia:Destroy()        -- limpieza completa
+--  instancia:Clear()
+--  instancia:SetActive(bool)
+--  instancia:Destroy()
 -- ============================================================
 
 local Players          = game:GetService("Players")
@@ -42,8 +36,13 @@ local AvatarViewport = {}
 AvatarViewport.__index = AvatarViewport
 
 local DEFAULTS = {
-    fieldOfView = 45, fitPadding = 1.38, lookYBias = 0.04,
-    rotSpeed = 0.25, zoomMin = 0.55, zoomMax = 1.8, zoomStep = 0.15,
+    fieldOfView = 45,
+    fitPadding = 1.38,
+    lookYBias = 0.04,
+    rotSpeed = 0.25,
+    zoomMin = 0.55,
+    zoomMax = 1.8,
+    zoomStep = 0.15,
 }
 
 function AvatarViewport.new(container, config)
@@ -96,7 +95,7 @@ function AvatarViewport.new(container, config)
     hint.TextSize         = 11
     hint.Font             = F_NORMAL
     hint.TextXAlignment   = Enum.TextXAlignment.Left
-    hint.Text             = "↺  Arrastra para rotar"
+    hint.Text             = "Arrastra para rotar"
     hint.Parent           = viewport
 
     viewport.MouseEnter:Connect(function()
@@ -106,7 +105,9 @@ function AvatarViewport.new(container, config)
         TweenService:Create(hint, T_FAST, {TextTransparency = 1}):Play()
     end)
 
-    if config.showControls ~= false then self:_buildControls() end
+    if config.showControls ~= false then
+        self:_buildControls()
+    end
     self:_bindInput()
     self:_bindRenderLoop()
 
@@ -159,7 +160,9 @@ function AvatarViewport:_buildControls()
                 TweenService:Create(bStroke, T_FAST, {Transparency = 0.8}):Play()
             end
         end)
-        b.MouseButton1Down:Connect(function() TweenService:Create(scale, T_FAST, {Scale = 0.92}):Play() end)
+        b.MouseButton1Down:Connect(function()
+            TweenService:Create(scale, T_FAST, {Scale = 0.92}):Play()
+        end)
         b.MouseButton1Up:Connect(function()
             SoundKit.PlayClick()
             TweenService:Create(scale, T_FAST, {Scale = 1.06}):Play()
@@ -167,8 +170,10 @@ function AvatarViewport:_buildControls()
         return b
     end
 
-    local btnZoomIn, btnZoomOut = miniButton("+", 1), miniButton("–", 2)
-    local btnReset, btnAutoRot  = miniButton("⟲", 3), miniButton("⟳", 4)
+    local btnZoomIn = miniButton("+", 1)
+    local btnZoomOut = miniButton("-", 2)
+    local btnReset = miniButton("R", 3)
+    local btnAutoRot = miniButton("A", 4)
 
     btnZoomIn.MouseButton1Click:Connect(function()
         self.zoom = math.clamp(self.zoom - self.zoomStep, self.zoomMin, self.zoomMax)
@@ -177,7 +182,8 @@ function AvatarViewport:_buildControls()
         self.zoom = math.clamp(self.zoom + self.zoomStep, self.zoomMin, self.zoomMax)
     end)
     btnReset.MouseButton1Click:Connect(function()
-        self.zoom, self.angle = 1, 0
+        self.zoom = 1
+        self.angle = 0
     end)
 
     local function refreshAutoRot()
@@ -198,7 +204,8 @@ function AvatarViewport:_bindInput()
     self.frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
-            self.dragging, self.dragStartX = true, input.Position.X
+            self.dragging = true
+            self.dragStartX = input.Position.X
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
@@ -219,7 +226,9 @@ end
 
 function AvatarViewport:_fitCamera()
     if not self.previewModel then return end
-    local ok, cf, size = pcall(function() return self.previewModel:GetBoundingBox() end)
+    local ok, cf, size = pcall(function()
+        return self.previewModel:GetBoundingBox()
+    end)
     if not ok or not size then return end
     local fovRad = math.rad(self.camera.FieldOfView)
     self.baseDistance = (size.Y / 2) / math.tan(fovRad / 2) * self.fitPadding
@@ -236,7 +245,7 @@ function AvatarViewport:_bindRenderLoop()
             self.angle = self.angle + dt * self.rotSpeed
         end
 
-        local distance   = self.baseDistance * self.zoom
+        local distance = self.baseDistance * self.zoom
         local lookCenter = Vector3.new(root.Position.X, self.lookY, root.Position.Z)
         local camX = root.Position.X + math.sin(self.angle) * distance
         local camZ = root.Position.Z + math.cos(self.angle) * distance
@@ -254,15 +263,14 @@ end
 local function prepareModel(model)
     for _, d in ipairs(model:GetDescendants()) do
         if d:IsA("BasePart") then
-            d.Anchored, d.CanCollide = true, false
+            d.Anchored = true
+            d.CanCollide = false
         elseif d:IsA("Script") or d:IsA("LocalScript") then
             d:Destroy()
         end
     end
 end
 
--- Construye un avatar directamente desde una HumanoidDescription
--- — no necesita ningún Character existente.
 function AvatarViewport:ShowDescription(description)
     self:Clear()
     if not description then return end
@@ -278,25 +286,28 @@ function AvatarViewport:ShowDescription(description)
     prepareModel(model)
     model.Parent = self.worldModel
     self.previewModel = model
-    self.zoom, self.angle = 1, 0
+    self.zoom = 1
+    self.angle = 0
     self:_fitCamera()
 end
 
--- Alternativa: clona un Character ya existente.
 function AvatarViewport:ShowCharacter(character)
     self:Clear()
     if not character then return end
 
     local originalArchivable = character.Archivable
     character.Archivable = true
-    local ok, clone = pcall(function() return character:Clone() end)
+    local ok, clone = pcall(function()
+        return character:Clone()
+    end)
     character.Archivable = originalArchivable
     if not ok or not clone then return end
 
     prepareModel(clone)
     clone.Parent = self.worldModel
     self.previewModel = clone
-    self.zoom, self.angle = 1, 0
+    self.zoom = 1
+    self.angle = 0
     self:_fitCamera()
 end
 
@@ -306,7 +317,9 @@ end
 
 function AvatarViewport:Destroy()
     self:Clear()
-    if self.frame then self.frame:Destroy() end
+    if self.frame then
+        self.frame:Destroy()
+    end
 end
 
 return AvatarViewport
