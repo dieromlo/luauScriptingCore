@@ -210,18 +210,15 @@ local function setupAllMannequins()
         mannequin:SetAttribute("ShirtId",           shirtPiece and shirtPiece.assetId or 0)
         mannequin:SetAttribute("PantsId",           pantsPiece and pantsPiece.assetId or 0)
 
-        -- Orden importante: apariencia → anclar (por si la
-        -- descripción introdujo partes nuevas) → headless (para
-        -- que siempre gane sobre cualquier cara que la
-        -- descripción haya puesto) → posición (por si el cambio
-        -- de apariencia afectó la geometría) → tag.
+        mannequin:SetPrimaryPartCFrame(targetCF)
+
+        mannequin.Parent = folder
+        
         applyOutfitAppearance(mannequin, outfit)
         anchorAllParts(mannequin)
         makeHeadless(mannequin)
-        mannequin:SetPrimaryPartCFrame(targetCF)
         tagMannequin(mannequin)
 
-        mannequin.Parent = folder
         print("[MannequinSetup] ✅ " .. outfit.name)
     end
 
