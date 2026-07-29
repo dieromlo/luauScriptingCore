@@ -139,23 +139,16 @@ SettingsPanel.Init(GUI)
 -- ══════════════════════════════════════════════════════════════
 --  [MODAL 2] OUTFIT PANEL
 -- ══════════════════════════════════════════════════════════════
-local OutfitViewerPanel = require(script.Parent.modules.OutfitViewerPanel)
-OutfitViewerPanel.Init(GUI, TryOnOutfit, BuyOutfit, showToast)
-
-
 local OutfitService = require(script.Parent.modules.OutfitService)
 OutfitService.Init({ tryOn = TryOnOutfit, buy = BuyOutfit })
+
+local OutfitViewerPanel = require(script.Parent.modules.OutfitViewerPanel)
+OutfitViewerPanel.Init(GUI, showToast)
 
 local MannequinInteraction = require(script.Parent.modules.MannequinInteraction)
 MannequinInteraction.Init()
 MannequinInteraction.OnInteract(function(mannequin, player)
-    MenuManager.Open("Outfit", {
-        id          = mannequin:GetAttribute("OutfitId"),
-        name        = mannequin:GetAttribute("OutfitName"),
-        description = mannequin:GetAttribute("OutfitDescription"),
-        shirt       = mannequin:GetAttribute("ShirtId"),
-        pants       = mannequin:GetAttribute("PantsId"),
-    })
+    MenuManager.Open("Outfit", { id = mannequin:GetAttribute("OutfitId") })
 end)
 
 -- ══════════════════════════════════════════════════════════════

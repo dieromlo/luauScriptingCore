@@ -4,33 +4,40 @@
 -- ------------------------------------------------------------
 --  RESPONSABILIDAD
 --  Punto único de coordinación para todo lo relacionado con
---  outfits desde el cliente: Try On hoy; Buy, AddToCart y
---  Checkout cuando existan. La idea es que ningún panel dispare
---  RemoteEvents directamente — todos pasan por aquí, así que
---  el día que cambie CÓMO se prueba o se compra un outfit, se
---  edita un solo archivo.
+--  outfits desde el cliente: Try On y Buy hoy; AddToCart y
+--  Checkout cuando existan. Ningún panel dispara RemoteEvents
+--  directamente — todos pasan por aquí.
 --
+--  DEPENDENCIAS
+--  Ninguna en tiempo de require — recibe sus RemoteEvents vía
+--  Init(), igual que MenuManager.
 --
 --  EXPONE
 --  OutfitService.Init(remotes)
 --  OutfitService.TryOn(outfitId)
 --  OutfitService.Buy(assetId)
---  OutfitService.AddToCart(item)  -- preparado, no implementado aun
+--  OutfitService.AddToCart(item)               -- preparado
+--  OutfitService.OnPurchaseFinished(callback)
+--    callback(assetId, wasPurchased) — se dispara cuando el
+--    diálogo nativo de compra de Roblox se cierra, sin importar
+--    si la compra se originó desde el cliente o el servidor.
 -- ============================================================
+
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players             = game:GetService("Players")
+
+local player = Players.LocalPlayer
 
 local OutfitService = {}
 
 local tryOnRemote, buyRemote
+local purchaseFinishedCallbacks = {}
 
--- remotes: { tryOn = RemoteEvent, buy = RemoteEvent }
 function OutfitService.Init(remotes)
     tryOnRemote = remotes.tryOn
     buyRemote   = remotes.buy
 end
 
--- Pide al servidor aplicar el outfit indicado sobre el jugador.
--- La validación real (existencia del outfit, etc.) vive en
--- AvatarHandler.server.lua — esto solo dispara el pedido.
 function OutfitService.TryOn(outfitId)
     if not tryOnRemote then
         warn("[OutfitService] TryOn llamado antes de Init().")
@@ -39,7 +46,6 @@ function OutfitService.TryOn(outfitId)
     tryOnRemote:FireServer(outfitId)
 end
 
--- Abre el diálogo de compra oficial de Roblox para un AssetId.
 function OutfitService.Buy(assetId)
     if not buyRemote then
         warn("[OutfitService] Buy llamado antes de Init().")
@@ -49,12 +55,19 @@ function OutfitService.Buy(assetId)
     buyRemote:FireServer(assetId)
 end
 
--- Preparado para el futuro carrito. Todavía no existe ningún
--- estado de carrito que mantener, así que por ahora solo avisa
--- que la función existe pero no está implementada — evita que
--- algo la llame en silencio sin saberlo.
 function OutfitService.AddToCart(item)
     warn("[OutfitService] AddToCart no implementado todavía (el carrito no existe aún).")
 end
+
+function OutfitService.OnPurchaseFinished(callback)
+    table.insert(purchaseFinishedCallbacks, callback)
+end
+
+MarketplaceService.PromptPurchaseFinished:Connect(function(plr, assetId, wasPurchased)
+    if plr ~= player then return end
+    for _, cb in ipairs(purchaseFinishedCallbacks) do
+        task.spawn(cb, assetId, wasPurchased)
+    end
+end)
 
 return OutfitService

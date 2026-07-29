@@ -200,20 +200,13 @@ local function setupAllMannequins()
 
         local mannequin = template:Clone()
         mannequin.Name  = "Mannequin_" .. outfit.id
-
-        local shirtPiece = OutfitResolver.FindPiece(outfit, "Shirt")
-        local pantsPiece = OutfitResolver.FindPiece(outfit, "Pants")
-
-        mannequin:SetAttribute("OutfitId",         outfit.id)
-        mannequin:SetAttribute("OutfitName",        outfit.name)
-        mannequin:SetAttribute("OutfitDescription", outfit.description)
-        mannequin:SetAttribute("ShirtId",           shirtPiece and shirtPiece.assetId or 0)
-        mannequin:SetAttribute("PantsId",           pantsPiece and pantsPiece.assetId or 0)
+        
+        mannequin:SetAttribute("OutfitId", outfit.id)
 
         mannequin:SetPrimaryPartCFrame(targetCF)
 
         mannequin.Parent = folder
-        
+
         applyOutfitAppearance(mannequin, outfit)
         anchorAllParts(mannequin)
         makeHeadless(mannequin)
