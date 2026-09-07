@@ -27,11 +27,11 @@ local ResetAvatar = remoteFolder:WaitForChild("ResetAvatar",  15)
 local BuyOutfit   = remoteFolder:WaitForChild("BuyOutfit",    15)
 local RemoveItem  = remoteFolder:WaitForChild("RemoveItem",   15)
 if not RemoveItem then
-    warn("[OutfitClient] ⚠️ RemoveItem no encontrado. Crea el init.meta.json correspondiente.")
+    warn("[OutfitClient] RemoveItem no encontrado. Crea el init.meta.json correspondiente.")
 end
 
-if not TryOnOutfit then error("[OutfitClient] ❌ TryOnOutfit no encontrado") end
-if not ResetAvatar then error("[OutfitClient] ❌ ResetAvatar no encontrado") end
+if not TryOnOutfit then error("[OutfitClient] TryOnOutfit no encontrado") end
+if not ResetAvatar then error("[OutfitClient] ResetAvatar no encontrado") end
 
 -- ══════════════════════════════════════════════════════════════
 --  SISTEMA DE AUDIO UI
