@@ -12,7 +12,7 @@ local RemoteEvents = OutfitSystem:WaitForChild("RemoteEvents",        10)
 local BuyOutfit    = RemoteEvents:WaitForChild("BuyOutfit",           10)
 
 if not BuyOutfit then
-    error("[BuyHandler] ❌ BuyOutfit no encontrado. Revisa los init.meta.json")
+    error("[BuyHandler] BuyOutfit no encontrado. Revisa los init.meta.json")
 end
 
 BuyOutfit.OnServerEvent:Connect(function(player, assetId)
@@ -26,6 +26,6 @@ BuyOutfit.OnServerEvent:Connect(function(player, assetId)
     if not ok then
         warn("[BuyHandler] Error: " .. tostring(err))
     else
-        print("[BuyHandler] ✅ Prompt abierto → " .. player.Name .. " → " .. assetId)
+        print("[BuyHandler] Prompt abierto → " .. player.Name .. " → " .. assetId)
     end
 end)
