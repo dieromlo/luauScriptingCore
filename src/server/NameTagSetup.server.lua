@@ -158,4 +158,4 @@ for _, player in ipairs(Players:GetPlayers()) do
     end
 end
 
-print("[NameTagSetup] ✅ Name tags dinámicos y reescalados activos.")
+print("[NameTagSetup] Name tags dinámicos y reescalados activos.")
