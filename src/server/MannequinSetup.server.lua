@@ -17,7 +17,7 @@ local MANNEQUIN_TAG = "Mannequin"
 
 local OutfitSystem = ReplicatedStorage:WaitForChild("OutfitSystem", 15)
 if not OutfitSystem then
-    error("[MannequinSetup] ❌ OutfitSystem no encontrado en ReplicatedStorage.")
+    error("[MannequinSetup] OutfitSystem no encontrado en ReplicatedStorage.")
 end
 
 local OutfitData     = require(OutfitSystem:WaitForChild("OutfitData", 10))
@@ -178,7 +178,7 @@ end
 local function setupAllMannequins()
     local template = ServerStorage:FindFirstChild("MannequinTemplate")
     if not template then
-        warn("[MannequinSetup] ❌ 'MannequinTemplate' no encontrado en ServerStorage.")
+        warn("[MannequinSetup] 'MannequinTemplate' no encontrado en ServerStorage.")
         return
     end
 
@@ -212,10 +212,10 @@ local function setupAllMannequins()
         makeHeadless(mannequin)
         tagMannequin(mannequin)
 
-        print("[MannequinSetup] ✅ " .. outfit.name)
+        print("[MannequinSetup] " .. outfit.name)
     end
 
-    print("[MannequinSetup] 🎉 Total: " .. #OutfitData.Outfits .. " maniquíes activos.")
+    print("[MannequinSetup] Total: " .. #OutfitData.Outfits .. " maniquíes activos.")
 end
 
 setupAllMannequins()
