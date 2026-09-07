@@ -348,7 +348,7 @@ local btnReport = makeCardButton("Reportar abuso", 4, function()
             StarterGui:SetCore("PromptReportAbuse", currentCardPlayer)
         end)
         if not ok then
-            warn("[CustomScoreboard] ⚠️ PromptReportAbuse no disponible en esta sesión.")
+            warn("[CustomScoreboard] PromptReportAbuse no disponible en esta sesión.")
         end
     end
 end)
@@ -533,4 +533,4 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-print("[CustomScoreboard] ✅ Scoreboard Pro listo: stats, hover, tarjeta de jugador.")
+print("[CustomScoreboard] Scoreboard Pro listo: stats, hover, tarjeta de jugador.")
