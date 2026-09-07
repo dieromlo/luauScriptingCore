@@ -17,10 +17,10 @@ local TryOnOutfit = RemoteEvents:WaitForChild("TryOnOutfit", 10)
 local ResetAvatar = RemoteEvents:WaitForChild("ResetAvatar",  10)
 
 if not TryOnOutfit then
-    error("[AvatarHandler] ❌ TryOnOutfit no encontrado. Revisa los init.meta.json")
+    error("[AvatarHandler] TryOnOutfit no encontrado. Revisa los init.meta.json")
 end
 if not ResetAvatar then
-    error("[AvatarHandler] ❌ ResetAvatar no encontrado. Revisa los init.meta.json")
+    error("[AvatarHandler] ResetAvatar no encontrado. Revisa los init.meta.json")
 end
 
 -- Cache: guarda la apariencia original de cada jugador
@@ -38,9 +38,9 @@ local function cacheOriginalAppearance(player, character)
 
     if ok and desc then
         originalDescriptions[player] = desc
-        print("[AvatarHandler] ✅ Apariencia guardada: " .. player.Name)
+        print("[AvatarHandler] Apariencia guardada: " .. player.Name)
     else
-        warn("[AvatarHandler] ⚠️ No se pudo guardar apariencia de "
+        warn("[AvatarHandler] No se pudo guardar apariencia de "
             .. player.Name .. ": " .. tostring(desc))
     end
 end
@@ -56,9 +56,9 @@ Players.PlayerAdded:Connect(function(player)
 
         if ok and desc then
             originalDescriptions[player] = desc
-            print("[AvatarHandler] ✅ Apariencia guardada: " .. player.Name)
+            print("[AvatarHandler] Apariencia guardada: " .. player.Name)
         else
-            warn("[AvatarHandler] ⚠️ No se pudo guardar apariencia de "
+            warn("[AvatarHandler] No se pudo guardar apariencia de "
                 .. player.Name .. ": " .. tostring(desc))
         end
     end)
@@ -107,7 +107,7 @@ TryOnOutfit.OnServerEvent:Connect(function(player, outfitId)
     local pants = char:FindFirstChildOfClass("Pants")
     if pants then pants:SetAttribute("FromOutfit", true) end
 
-    print("[AvatarHandler] ✅ " .. player.Name .. " → " .. outfit.name)
+    print("[AvatarHandler] " .. player.Name .. " → " .. outfit.name)
 end)
 
 -- ─── RESETEAR ──────────────────────────────────────────────────
@@ -121,9 +121,9 @@ ResetAvatar.OnServerEvent:Connect(function(player)
 if desc then
     local ok, err = pcall(function() hum:ApplyDescription(desc) end)
     if ok then
-        print("[AvatarHandler] ✅ Reset: " .. player.Name)
+        print("[AvatarHandler] Reset: " .. player.Name)
     else
-        warn("[AvatarHandler] ❌ Error al resetear a " .. player.Name .. ": " .. tostring(err))
+        warn("[AvatarHandler] Error al resetear a " .. player.Name .. ": " .. tostring(err))
     end
 else
         -- Fallback: solo borrar la ropa
