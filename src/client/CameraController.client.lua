@@ -23,4 +23,4 @@ player.CharacterAdded:Connect(function()
     player.CameraMaxZoomDistance = MAX_ZOOM
 end)
 
-print("[CameraController] ✅ Zoom limitado: " .. MIN_ZOOM .. " - " .. MAX_ZOOM .. " studs")
+print("[CameraController] Zoom limitado: " .. MIN_ZOOM .. " - " .. MAX_ZOOM .. " studs")
